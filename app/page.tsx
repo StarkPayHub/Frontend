@@ -1,29 +1,26 @@
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
+import { MatrixBackground } from "@/components/MatrixBackground";
 
 const features = [
   {
     title: "One-Time Sign",
     desc: "Sign once, subscribe forever. Session keys eliminate repeated approval dialogs for seamless renewals.",
-    color: "violet",
     icon: "⚡",
   },
   {
     title: "Gasless Payments",
     desc: "Pay subscription fees in USDC. Zero ETH required — AVNU paymaster covers all gas costs invisibly.",
-    color: "cyan",
     icon: "◈",
   },
   {
     title: "Auto-Renewal Engine",
     desc: "Subscriptions renew automatically on-chain. Keeper bot triggers execute_renewal() at period end.",
-    color: "emerald",
     icon: "↻",
   },
   {
     title: "Instant Withdrawals",
     desc: "Merchants withdraw earned USDC anytime. No lock-up, no middlemen — full custody of your revenue.",
-    color: "amber",
     icon: "↑",
   },
 ];
@@ -31,189 +28,201 @@ const features = [
 const steps = [
   {
     n: "01",
-    color: "text-violet-400",
-    bg: "bg-violet-500/10",
     title: "Create a Plan",
-    desc: "Merchant deploys a subscription plan on-chain — set price, interval, and plan name. Takes one transaction.",
+    desc: "Merchant deploys a subscription plan on-chain — set price, interval, and plan name.",
   },
   {
     n: "02",
-    color: "text-cyan-400",
-    bg: "bg-cyan-500/10",
     title: "Subscribe Once",
-    desc: "User approves USDC and subscribes in a single multicall. One signature — that's it. Never sign again.",
+    desc: "User approves USDC and subscribes in a single multicall. One signature — never sign again.",
   },
   {
     n: "03",
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
     title: "Auto-Renew Forever",
-    desc: "Keeper bot calls execute_renewal() at each period end. Contract handles balance check, transfer, and period update.",
+    desc: "Keeper bot calls execute_renewal() at each period end. Contract handles everything automatically.",
   },
 ];
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="relative text-white" style={{ background: '#000' }}>
+      <MatrixBackground />
+
       <Navbar />
 
-      {/* Hero */}
-      <section className="relative flex flex-col items-center justify-center text-center px-6 pt-32 pb-24 overflow-hidden">
-        {/* Radial glow */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[600px] h-[400px] rounded-full bg-violet-600/10 blur-3xl" />
+      {/* ── Hero ── */}
+      <section className="relative z-10 flex flex-col items-center justify-center text-center px-6 pt-24 pb-32 min-h-screen">
+        {/* Center glow */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden>
+          <div className="w-[800px] h-[600px] rounded-full bg-violet-900/20 blur-[140px]" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center gap-6 max-w-4xl">
-          <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 text-xs font-mono text-violet-400 tracking-wide">
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-            Built on Starknet Account Abstraction
-          </div>
-
-          <h1 className="text-5xl md:text-7xl font-light leading-tight tracking-tight">
-            <span className="text-zinc-400">The Subscription Protocol</span>
-            <br />
-            <span className="font-bold text-white">for Web3 SaaS</span>
-          </h1>
-
-          <p className="text-lg text-zinc-500 max-w-xl leading-relaxed">
-            Sign once. Auto-renew forever.
-            <br />
-            Powered by native Account Abstraction — no repeated approvals, no friction.
+        <div className="relative flex flex-col items-center gap-8 max-w-5xl w-full">
+          {/* Badge */}
+          <p className="font-mono text-[12px] tracking-[0.22em] uppercase px-4 py-2 rounded-full inline-block"
+            style={{ color: '#c4b5fd', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>
+            Built on Starknet · Account Abstraction
           </p>
 
-          <div className="flex items-center gap-4">
+          {/* Headline */}
+          <h1 className="font-display font-extrabold uppercase leading-[0.92] tracking-tight drop-shadow-2xl">
+            <span
+              className="block text-[clamp(3rem,9vw,8rem)]"
+              style={{
+                color: '#fff',
+                textShadow: '0 0 40px rgba(167,139,250,0.9), 0 2px 8px rgba(0,0,0,0.9)',
+              }}
+            >
+              The Subscription
+            </span>
+            <span
+              className="block text-[clamp(3rem,9vw,8rem)]"
+              style={{
+                color: '#c4b5fd',
+                textShadow: '0 0 60px rgba(124,58,237,0.8), 0 2px 8px rgba(0,0,0,0.9)',
+              }}
+            >
+              Protocol for Web3
+            </span>
+          </h1>
+
+          <p
+            className="text-base md:text-lg max-w-xl leading-relaxed font-medium"
+            style={{ color: '#e4e4e7', textShadow: '0 1px 6px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.8)' }}
+          >
+            Sign once. Auto-renew forever.
+            <br />
+            No repeated approvals, no friction — pure on-chain SaaS.
+          </p>
+
+          {/* CTAs */}
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-2">
             <Link
               href="/pricing"
-              className="px-8 py-3.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors"
+              className="group flex items-center gap-3 px-8 py-4 border border-white text-white font-mono text-sm tracking-widest uppercase hover:bg-white hover:text-black transition-all duration-200"
             >
-              Start Building →
+              Start Building
+              <span className="group-hover:translate-x-1 transition-transform">→</span>
             </Link>
             <Link
               href="/demo"
-              className="px-8 py-3.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 font-medium transition-colors"
+              className="group flex items-center gap-3 px-8 py-4 border border-violet-500/50 text-violet-300 font-mono text-sm tracking-widest uppercase hover:border-violet-400 hover:text-violet-200 transition-all duration-200"
             >
-              View Demo
+              How It Works
+              <span className="group-hover:translate-x-1 transition-transform">→</span>
             </Link>
           </div>
 
-          {/* Stats */}
-          <div className="flex items-center divide-x divide-white/10 mt-8">
-            {[
-              ["12,400+", "Active Subscriptions"],
-              ["$840K+", "Total Volume (USDC)"],
-              ["380+", "Merchants on Sepolia"],
-            ].map(([val, label]) => (
-              <div key={label} className="px-10 flex flex-col items-center gap-1">
-                <span className="text-2xl font-bold text-white">{val}</span>
-                <span className="text-xs text-zinc-500">{label}</span>
+        </div>
+      </section>
+
+      {/* ── Features ── */}
+      <section className="relative z-10 border-t border-white/[0.07] py-28 px-6" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-16">
+            <p className="font-mono text-[11px] text-violet-500 tracking-[0.25em] uppercase mb-4">
+              Protocol Features
+            </p>
+            <h2 className="font-display font-extrabold uppercase text-4xl md:text-5xl leading-tight">
+              <span style={{ color: 'transparent', WebkitTextStroke: '1px rgba(167,139,250,0.6)' }}>
+                What StarkPayHub
+              </span>
+              <br />
+              <span className="text-white">Unlocks for Builders</span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/[0.05]">
+            {features.map((f) => (
+              <div
+                key={f.title}
+                className="group p-10 bg-black hover:bg-violet-950/20 transition-colors duration-300"
+              >
+                <div className="text-3xl mb-6 opacity-30 group-hover:opacity-70 transition-opacity font-mono text-violet-400">
+                  {f.icon}
+                </div>
+                <h3 className="font-display font-bold uppercase text-lg text-white mb-3 tracking-wide">
+                  {f.title}
+                </h3>
+                <p className="text-sm text-zinc-500 leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="max-w-7xl mx-auto px-6 py-24">
-        <div className="flex items-start justify-between mb-16">
-          <div>
-            <h2 className="text-4xl md:text-5xl font-light text-zinc-400 leading-tight">
-              What StarkPayHub
-            </h2>
-            <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
-              Unlocks For Builders
+      {/* ── How It Works ── */}
+      <section className="relative z-10 border-t border-white/[0.07] py-28 px-6" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="font-mono text-[11px] text-violet-500 tracking-[0.25em] uppercase mb-4">
+              How It Works
+            </p>
+            <h2 className="font-display font-extrabold uppercase text-4xl md:text-5xl text-white">
+              Three Steps to On-Chain Subscriptions
             </h2>
           </div>
-          <p className="hidden md:block text-sm text-zinc-500 max-w-xs text-right leading-relaxed">
-            Real outcomes SaaS builders achieve when payments, renewals, and
-            withdrawals are fully on-chain
-          </p>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {features.map((f) => (
-            <div
-              key={f.title}
-              className="rounded-xl border border-white/[0.06] bg-[#111] overflow-hidden"
-            >
-              <div className="h-36 bg-[#0d0d0d] flex items-center justify-center">
-                <span className="text-5xl opacity-20">{f.icon}</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/[0.05]">
+            {steps.map((s) => (
+              <div key={s.n} className="group p-10 bg-black hover:bg-violet-950/20 transition-colors duration-300">
+                <div className="font-mono text-5xl font-bold text-violet-900 mb-6 group-hover:text-violet-700 transition-colors">
+                  {s.n}
+                </div>
+                <h3 className="font-display font-bold uppercase text-lg text-white mb-3 tracking-wide">
+                  {s.title}
+                </h3>
+                <p className="text-sm text-zinc-500 leading-relaxed">{s.desc}</p>
               </div>
-              <div className="p-6 space-y-2">
-                <h3 className="text-lg font-semibold text-white">{f.title}</h3>
-                <p className="text-sm text-zinc-500 leading-relaxed">{f.desc}</p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="max-w-7xl mx-auto px-6 py-24 border-t border-white/[0.04]">
-        <div className="text-center mb-16 space-y-3">
-          <p className="text-xs font-mono text-violet-400 tracking-widest uppercase">
-            How It Works
-          </p>
-          <h2 className="text-4xl font-bold text-white">
-            Three steps to on-chain subscriptions
+      {/* ── CTA ── */}
+      <section className="relative z-10 border-t border-white/[0.07] py-32 px-6" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+        <div className="max-w-4xl mx-auto text-center space-y-10">
+          <h2 className="font-display font-extrabold uppercase leading-tight text-5xl md:text-6xl">
+            <span style={{ color: 'transparent', WebkitTextStroke: '1px rgba(167,139,250,0.7)' }}>
+              Ready
+            </span>
+            {' '}
+            <span className="text-white">to Build?</span>
           </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {steps.map((s) => (
-            <div
-              key={s.n}
-              className="p-8 rounded-xl border border-white/[0.06] bg-[#0f0f0f] space-y-4"
-            >
-              <div className={`w-10 h-10 rounded-lg ${s.bg} flex items-center justify-center`}>
-                <span className={`font-mono text-sm font-bold ${s.color}`}>{s.n}</span>
-              </div>
-              <h3 className="text-xl font-semibold text-white">{s.title}</h3>
-              <p className="text-sm text-zinc-500 leading-relaxed">{s.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="relative mx-6 mb-16 rounded-2xl overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-900/20 via-transparent to-transparent" />
-        <div className="relative border border-white/[0.06] bg-[#0f0f0f] rounded-2xl px-6 py-20 flex flex-col items-center text-center gap-8">
-          <h2 className="text-5xl font-bold text-white">Ready to Build?</h2>
-          <p className="text-lg text-zinc-500 max-w-lg leading-relaxed">
-            Get your Web3 subscription protocol live in minutes.
-            <br />
+          <p className="text-zinc-400 text-lg max-w-lg mx-auto leading-relaxed">
             Contracts on Sepolia. SDK ready. Keeper included.
+            <br />
+            Get your Web3 subscription protocol live in minutes.
           </p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/pricing"
-              className="px-8 py-3.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors"
+              className="group flex items-center gap-3 px-10 py-4 border border-white text-white font-mono text-sm tracking-widest uppercase hover:bg-white hover:text-black transition-all duration-200"
             >
-              Start with Contracts →
+              Start with Contracts <span className="group-hover:translate-x-1 transition-transform">→</span>
             </Link>
             <a
               href="https://github.com"
-              className="px-8 py-3.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 font-medium transition-colors"
+              className="group flex items-center gap-3 px-10 py-4 border border-zinc-700 text-zinc-400 font-mono text-sm tracking-widest uppercase hover:border-zinc-500 hover:text-zinc-200 transition-all duration-200"
             >
-              Read the Docs
+              Read the Docs <span className="group-hover:translate-x-1 transition-transform">→</span>
             </a>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-white/[0.06] px-6 py-8">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <span className="font-mono text-sm font-bold text-white/40 tracking-widest">
+      {/* ── Footer ── */}
+      <footer className="relative z-10 border-t border-white/[0.07] px-6 py-8" style={{ background: 'rgba(0,0,0,0.9)' }}>
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <span className="font-mono text-sm font-bold text-white/30 tracking-widest">
             STARKPAYHUB
           </span>
-          <span className="text-xs text-zinc-600">
+          <span className="text-xs text-zinc-700 font-mono">
             © 2026 StarkPayHub — Built for Starknet Hackathon
           </span>
-          <div className="flex gap-6">
+          <div className="flex gap-8">
             {["GitHub", "Docs", "Voyager"].map((l) => (
-              <a key={l} href="#" className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+              <a key={l} href="#" className="text-xs text-zinc-700 hover:text-zinc-400 transition-colors font-mono tracking-wider uppercase">
                 {l}
               </a>
             ))}
