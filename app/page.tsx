@@ -46,40 +46,39 @@ function useScrollReveal() {
 }
 
 /* ── data ── */
-/* ── Clean SVG icons — no emojis ── */
+/* ── SF-quality SVG icons (Heroicons 2.0 outline) ── */
 const FeatureIcons = {
-  key: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="7.5" cy="15.5" r="4.5"/>
-      <path d="M12 15.5h8M18 12.5v6"/>
+  // PencilSquare — "sign once on a document"
+  sign: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.862 4.487zm0 0L19.5 7.125" />
+      <path d="M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
     </svg>
   ),
-  gas: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 22V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/>
-      <path d="M3 22h12M15 8h1a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h0"/>
-      <line x1="7" y1="2" x2="7" y2="4"/>
-      <line x1="11" y1="2" x2="11" y2="4"/>
+  // BoltSlash — "no gas / gasless"
+  gasless: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11.412 15.655 9.75 21.75l3.745-4.012M9.257 13.5H3.75l2.659-2.849m2.048-2.194L14.25 2.25 12 10.5h8.25l-4.707 5.043M6.75 15.75 4.5 21l4.5-2.25" />
     </svg>
   ),
-  refresh: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-      <path d="M3 3v5h5"/>
+  // ArrowPath — "cycle / auto-renew"
+  renew: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
     </svg>
   ),
+  // Banknotes — "instant withdrawal / money out"
   withdraw: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 19V5M5 12l7-7 7 7"/>
-      <path d="M5 19h14"/>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
     </svg>
   ),
 };
 
 const features = [
-  { title: "One-Time Sign",       desc: "Sign once, subscribe forever. Session keys eliminate repeated approval dialogs for seamless renewals.", icon: FeatureIcons.key      },
-  { title: "Gasless Payments",    desc: "Pay subscription fees in USDC. Zero ETH required — AVNU paymaster covers all gas costs invisibly.",    icon: FeatureIcons.gas      },
-  { title: "Auto-Renewal Engine", desc: "Subscriptions renew automatically on-chain. Keeper bot triggers execute_renewal() at period end.",     icon: FeatureIcons.refresh  },
+  { title: "One-Time Sign",       desc: "Sign once, subscribe forever. Session keys eliminate repeated approval dialogs for seamless renewals.", icon: FeatureIcons.sign     },
+  { title: "Gasless Payments",    desc: "Pay subscription fees in USDC. Zero ETH required — AVNU paymaster covers all gas costs invisibly.",    icon: FeatureIcons.gasless  },
+  { title: "Auto-Renewal Engine", desc: "Subscriptions renew automatically on-chain. Keeper bot triggers execute_renewal() at period end.",     icon: FeatureIcons.renew    },
   { title: "Instant Withdrawals", desc: "Merchants withdraw earned USDC anytime. No lock-up, no middlemen — full custody of your revenue.",     icon: FeatureIcons.withdraw },
 ];
 

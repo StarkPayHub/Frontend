@@ -10,14 +10,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Hide loader after initial hydration
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 900);
+    const t = setTimeout(() => setLoading(false), 450);
     return () => clearTimeout(t);
   }, []);
 
   // Show loader briefly on route change
   useEffect(() => {
     setLoading(true);
-    const t = setTimeout(() => setLoading(false), 600);
+    const t = setTimeout(() => setLoading(false), 300);
     return () => clearTimeout(t);
   }, [pathname]);
 

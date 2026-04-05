@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 interface Props {
   /** if true, renders the overlay; if false, fades out then unmounts */
@@ -39,57 +40,19 @@ export function LoadingScreen({ visible }: Props) {
         pointerEvents: visible ? "auto" : "none",
       }}
     >
-      {/* ── Logo mark ── */}
-      <div style={{ position: "relative", width: 72, height: 48 }}>
-        {/* Left wing */}
-        <svg
-          viewBox="0 0 34 48"
-          width={34}
-          height={48}
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            animation: "wing-left 2.4s ease-in-out infinite",
-            willChange: "transform",
-          }}
-        >
-          <path d="M30 2 L2 24 L30 46 L34 46 L34 2 Z" fill="#7c3aed" />
-          <path d="M30 2 L34 2 L34 46 L30 46 Z" fill="#5b21b6" />
-        </svg>
-
-        {/* Right wing */}
-        <svg
-          viewBox="0 0 34 48"
-          width={34}
-          height={48}
-          style={{
-            position: "absolute",
-            right: 0,
-            top: 0,
-            transform: "scaleX(-1)",
-            animation: "wing-right 2.4s ease-in-out infinite",
-            willChange: "transform",
-          }}
-        >
-          <path d="M30 2 L2 24 L30 46 L34 46 L34 2 Z" fill="#c4b5fd" />
-          <path d="M30 2 L34 2 L34 46 L30 46 Z" fill="#a78bfa" />
-        </svg>
-
-        {/* center glow dot */}
-        <div style={{
-          position: "absolute",
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-          width: 6,
-          height: 6,
-          borderRadius: "50%",
-          background: "#e9d5ff",
-          boxShadow: "0 0 16px 4px rgba(196,181,253,0.6)",
-          animation: "center-pulse 2.4s ease-in-out infinite",
-          willChange: "transform, opacity",
-        }} />
+      {/* ── Logo ── */}
+      <div style={{
+        animation: "sph-logo-breathe 2.8s ease-in-out infinite",
+        willChange: "opacity, transform",
+      }}>
+        <Image
+          src="/logo.png"
+          alt="StarkPayHub"
+          width={140}
+          height={140}
+          priority
+          style={{ display: "block" }}
+        />
       </div>
 
       {/* ── Progress bar ── */}
@@ -111,38 +74,14 @@ export function LoadingScreen({ visible }: Props) {
         }} />
       </div>
 
-      {/* ── Brand ── */}
-      <span style={{
-        fontFamily: "monospace",
-        fontSize: 10,
-        letterSpacing: "0.28em",
-        textTransform: "uppercase",
-        color: "rgba(139,92,246,0.5)",
-        animation: "label-pulse 2.4s ease-in-out infinite",
-      }}>
-        StarkPayHub
-      </span>
-
       <style>{`
-        @keyframes wing-left {
-          0%,100% { transform: translateX(0) rotate(0deg); opacity:0.9; }
-          50%      { transform: translateX(-3px) rotate(-2deg); opacity:1; }
-        }
-        @keyframes wing-right {
-          0%,100% { transform: scaleX(-1) translateX(0) rotate(0deg); opacity:0.9; }
-          50%      { transform: scaleX(-1) translateX(-3px) rotate(-2deg); opacity:1; }
-        }
-        @keyframes center-pulse {
-          0%,100% { transform: translate(-50%,-50%) scale(1);   opacity:0.8; }
-          50%      { transform: translate(-50%,-50%) scale(1.8); opacity:1; }
+        @keyframes sph-logo-breathe {
+          0%, 100% { opacity: 0.85; transform: scale(1);    }
+          50%       { opacity: 1;    transform: scale(1.04); }
         }
         @keyframes shimmer-bar {
           0%   { background-position: 200% 0; }
           100% { background-position: -200% 0; }
-        }
-        @keyframes label-pulse {
-          0%,100% { opacity:0.4; }
-          50%      { opacity:0.8; }
         }
       `}</style>
     </div>

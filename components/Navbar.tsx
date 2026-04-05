@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ConnectWallet } from "./ConnectWallet";
 import { useState, useEffect } from "react";
@@ -59,7 +60,7 @@ export function Navbar() {
         pointerEvents: "auto",       /* re-enable on the pill */
       }}>
 
-        {/* ── Logo — square icon + name ── */}
+        {/* ── Logo ── */}
         <Link href="/" style={{
           display: "flex",
           alignItems: "center",
@@ -67,28 +68,13 @@ export function Navbar() {
           textDecoration: "none",
           flexShrink: 0,
         }}>
-          {/* Square logo mark — like Superfluid's [+] icon */}
-          <div style={{
-            width: 34,
-            height: 34,
-            borderRadius: 9,
-            background: "linear-gradient(135deg, #7c3aed 0%, #4338ca 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-            boxShadow: "0 2px 8px rgba(124,58,237,0.35)",
-          }}>
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M11 4.5C10 3.5 9 3 7.5 3C5.5 3 4 4.2 4 5.7C4 7.2 5.5 8 8 8.5C10.5 9 12 9.8 12 11.3C12 12.8 10.5 14 8 14C6 14 4.5 13 4 12"
-                stroke="white"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-
+          <Image
+            src="/logo-sm.png"
+            alt="StarkPayHub"
+            width={44}
+            height={44}
+            style={{ display: "block" }}
+          />
           <span style={{
             fontFamily: "'Syne', sans-serif",
             fontWeight: 700,

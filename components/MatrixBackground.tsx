@@ -49,8 +49,13 @@ export function MatrixBackground() {
     }
 
     let t = 0;
+    let frameCount = 0;
 
     function frame() {
+      id = requestAnimationFrame(frame);
+      frameCount++;
+      if (frameCount % 2 !== 0) return; // throttle to ~30 fps
+
       // Deep black fade — creates trail
       ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
       ctx.fillRect(0, 0, W, H);
@@ -102,7 +107,6 @@ export function MatrixBackground() {
       }
 
       t++;
-      id = requestAnimationFrame(frame);
     }
 
     build();
