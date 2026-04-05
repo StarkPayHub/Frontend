@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 
 interface Props {
   /** if true, renders the overlay; if false, fades out then unmounts */
@@ -45,13 +44,13 @@ export function LoadingScreen({ visible }: Props) {
         animation: "sph-logo-breathe 2.8s ease-in-out infinite",
         willChange: "opacity, transform",
       }}>
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src="/logo.png"
           alt="StarkPayHub"
           width={140}
           height={140}
-          priority
-          style={{ display: "block" }}
+          style={{ display: "block", objectFit: "contain" }}
         />
       </div>
 

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ConnectWallet } from "./ConnectWallet";
 import { useState, useEffect } from "react";
@@ -68,12 +67,13 @@ export function Navbar() {
           textDecoration: "none",
           flexShrink: 0,
         }}>
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src="/logo-sm.png"
             alt="StarkPayHub"
             width={44}
             height={44}
-            style={{ display: "block" }}
+            style={{ display: "block", objectFit: "contain" }}
           />
           <span style={{
             fontFamily: "'Syne', sans-serif",
