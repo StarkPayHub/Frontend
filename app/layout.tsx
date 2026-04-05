@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { StarknetProvider } from "./starknet-provider";
+import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
   title: "StarkPayHub — Web3 Subscription Protocol",
@@ -16,7 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <StarknetProvider>{children}</StarknetProvider>
+        <StarknetProvider>
+          <AppShell>{children}</AppShell>
+        </StarknetProvider>
       </body>
     </html>
   );

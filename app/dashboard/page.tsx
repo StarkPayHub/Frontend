@@ -3,6 +3,7 @@
 import { useAccount } from "@starknet-react/core";
 import { Navbar } from "@/components/Navbar";
 import { ClaimUSDC } from "@/components/ClaimUSDC";
+import { ConnectWallet } from "@/components/ConnectWallet";
 import Link from "next/link";
 
 // Mock data — replace with useContractRead hooks once contracts are deployed
@@ -30,13 +31,83 @@ export default function DashboardPage() {
 
   if (status !== "connected") {
     return (
-      <div className="min-h-screen bg-[#0a0a0a]">
+      <div className="min-h-screen" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(60,20,120,0.3) 0%, rgba(4,2,18,1) 60%)", backgroundColor: "#04020f" }}>
         <Navbar />
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-4 text-center">
-          <p className="text-zinc-400">Connect your wallet to view subscriptions</p>
-          <Link href="/pricing" className="text-sm text-violet-400 hover:text-violet-300">
-            Browse plans →
-          </Link>
+        <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
+          {/* Glow backdrop */}
+          <div style={{
+            position: "absolute",
+            width: 500, height: 500,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(109,40,217,0.12) 0%, transparent 70%)",
+            filter: "blur(40px)",
+            pointerEvents: "none",
+          }} />
+
+          <div style={{
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 28,
+            maxWidth: 400,
+            textAlign: "center",
+          }}>
+            {/* Icon */}
+            <div style={{
+              width: 72, height: 72,
+              borderRadius: 20,
+              background: "rgba(109,40,217,0.12)",
+              border: "1px solid rgba(139,92,246,0.25)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 0 40px rgba(109,40,217,0.15)",
+            }}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.85)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="3"/>
+                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                <line x1="12" y1="12" x2="12" y2="16"/>
+                <circle cx="12" cy="12" r="1" fill="rgba(167,139,250,0.85)" stroke="none"/>
+              </svg>
+            </div>
+
+            {/* Text */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <h2 style={{
+                fontFamily: "'Syne', sans-serif",
+                fontWeight: 700,
+                fontSize: "1.35rem",
+                color: "#fff",
+                letterSpacing: "-0.01em",
+              }}>
+                Connect your wallet
+              </h2>
+              <p style={{
+                fontSize: "0.875rem",
+                color: "rgba(161,161,170,0.6)",
+                lineHeight: 1.6,
+              }}>
+                Sign in with your Starknet wallet to view and manage your active subscriptions.
+              </p>
+            </div>
+
+            {/* CTA */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
+              <ConnectWallet />
+              <Link href="/pricing" style={{
+                fontSize: "0.8rem",
+                color: "rgba(139,92,246,0.6)",
+                textDecoration: "none",
+                fontFamily: "monospace",
+                letterSpacing: "0.06em",
+                transition: "color 0.2s",
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#c4b5fd"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(139,92,246,0.6)"; }}
+              >
+                Browse plans first →
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );

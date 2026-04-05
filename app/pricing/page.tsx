@@ -5,7 +5,7 @@ import { PLANS } from "@/lib/constants";
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(60,20,120,0.3) 0%, rgba(4,2,18,1) 60%)", backgroundColor: "#04020f" }}>
       <Navbar />
 
       <section className="max-w-5xl mx-auto px-6 py-20">

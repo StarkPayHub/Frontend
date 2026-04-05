@@ -31,7 +31,7 @@ export default function DemoPage() {
 
           <h1
             className="font-display font-extrabold leading-[0.88] tracking-tight mb-8"
-            style={{ fontSize: 'clamp(3.5rem,10vw,9rem)' }}
+            style={{ fontSize: 'clamp(2rem,4.5vw,3.5rem)' }}
           >
             <span className="block text-white" style={{ textShadow: '0 0 60px rgba(139,92,246,0.4)' }}>
               One Signature.
@@ -41,7 +41,7 @@ export default function DemoPage() {
             </span>
           </h1>
 
-          <p className="text-lg md:text-xl max-w-xl leading-relaxed mb-12" style={{ color: 'rgba(228,228,231,0.75)' }}>
+          <p className="text-sm md:text-base max-w-xl leading-relaxed mb-12" style={{ color: 'rgba(228,228,231,0.75)' }}>
             StarkPayHub eliminates the friction of Web3 subscriptions entirely.
             Sign once — every renewal happens automatically, on-chain, forever.
           </p>
@@ -82,7 +82,7 @@ export default function DemoPage() {
               <div key={s.num} className="flex flex-col items-center text-center px-8 py-10 gap-3" style={glassCard}>
                 <span
                   className="font-display font-extrabold"
-                  style={{ fontSize: '3.5rem', lineHeight: 1, color: '#a78bfa', textShadow: '0 0 40px rgba(167,139,250,0.4)' }}
+                  style={{ fontSize: '2.2rem', lineHeight: 1, color: '#a78bfa', textShadow: '0 0 40px rgba(167,139,250,0.4)' }}
                 >
                   {s.num}
                 </span>
@@ -103,7 +103,7 @@ export default function DemoPage() {
               </p>
               <h2
                 className="font-display font-extrabold text-white leading-tight"
-                style={{ fontSize: 'clamp(2.5rem,6vw,5rem)' }}
+                style={{ fontSize: 'clamp(1.6rem,3vw,2.4rem)' }}
               >
                 Everything you hated<br />
                 <span style={{ color: '#a78bfa' }}>about Web3 payments.</span><br />
@@ -114,25 +114,41 @@ export default function DemoPage() {
             <div className="space-y-0">
               {[
                 {
-                  icon: '⟳',
+                  icon: (
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.9)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                  ),
                   headline: 'Sign once.\nRenew forever.',
                   sub: 'Session keys mean your users never sign again. Every monthly renewal happens silently, automatically, on-chain.',
                   before: 'Previously: manual signature required for every single renewal transaction.',
                 },
                 {
-                  icon: '◈',
+                  icon: (
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.9)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11.412 15.655 9.75 21.75l3.745-4.012M9.257 13.5H3.75l2.659-2.849m2.048-2.194L14.25 2.25 12 10.5h8.25l-4.707 5.043M6.75 15.75 4.5 21l4.5-2.25" />
+                    </svg>
+                  ),
                   headline: 'Zero ETH\nrequired.',
                   sub: 'AVNU Paymaster covers all gas fees. Your users pay for subscriptions in USDC — that\'s it.',
                   before: 'Previously: users needed ETH just to pay gas, creating constant friction.',
                 },
                 {
-                  icon: '⚡',
+                  icon: (
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.9)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243-1.59-1.59" />
+                    </svg>
+                  ),
                   headline: 'One click.\nNot two.',
                   sub: 'Approve and subscribe in a single multicall transaction. One confirmation dialog, one tap, done.',
                   before: 'Previously: approve transaction, then subscribe transaction — two separate confirmations.',
                 },
                 {
-                  icon: '∞',
+                  icon: (
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.9)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z" />
+                    </svg>
+                  ),
                   headline: 'Runs itself.\nForever.',
                   sub: 'Keeper bot watches every subscription and calls execute_renewal() at each period end. No human needed.',
                   before: 'Previously: no on-chain automation existed. Merchants chased payments manually.',
@@ -146,7 +162,7 @@ export default function DemoPage() {
                   <div className="flex flex-col md:flex-row md:items-start gap-8 md:gap-16">
                     {/* Icon */}
                     <div
-                      className="flex-shrink-0 w-14 h-14 flex items-center justify-center text-2xl text-violet-400"
+                      className="flex-shrink-0 w-14 h-14 flex items-center justify-center"
                       style={{
                         background: 'rgba(139,92,246,0.08)',
                         border: '1px solid rgba(139,92,246,0.15)',
@@ -160,11 +176,11 @@ export default function DemoPage() {
                     <div className="flex-1 space-y-4">
                       <h3
                         className="font-display font-extrabold text-white leading-[1.05] whitespace-pre-line"
-                        style={{ fontSize: 'clamp(2rem,4vw,3rem)' }}
+                        style={{ fontSize: 'clamp(1.3rem,2.2vw,1.75rem)' }}
                       >
                         {item.headline}
                       </h3>
-                      <p className="text-lg leading-relaxed" style={{ color: 'rgba(228,228,231,0.65)' }}>
+                      <p className="text-sm leading-relaxed" style={{ color: 'rgba(228,228,231,0.65)' }}>
                         {item.sub}
                       </p>
                       <p className="text-sm font-mono" style={{ color: 'rgba(161,161,170,0.35)' }}>
@@ -361,7 +377,7 @@ export default function DemoPage() {
               <p className="font-mono text-[11px] text-violet-400 tracking-[0.28em] uppercase mb-5">
                 Developer Flow
               </p>
-              <h2 className="font-display font-extrabold text-white leading-tight" style={{ fontSize: 'clamp(2.5rem,6vw,5rem)' }}>
+              <h2 className="font-display font-extrabold text-white leading-tight" style={{ fontSize: 'clamp(1.6rem,3vw,2.4rem)' }}>
                 Live in minutes,<br />
                 <span style={{ color: '#a78bfa' }}>not days.</span>
               </h2>
@@ -396,10 +412,10 @@ export default function DemoPage() {
         {/* ── Final CTA ── */}
         <section className="py-40 px-6 text-center">
           <div className="max-w-3xl mx-auto space-y-8">
-            <h2 className="font-display font-extrabold text-white leading-[0.9]" style={{ fontSize: 'clamp(3rem,8vw,7rem)' }}>
+            <h2 className="font-display font-extrabold text-white leading-tight" style={{ fontSize: 'clamp(1.8rem,3.5vw,3rem)' }}>
               Ready to ship?
             </h2>
-            <p className="text-zinc-400 text-xl leading-relaxed max-w-xl mx-auto">
+            <p className="text-zinc-400 text-base leading-relaxed max-w-xl mx-auto">
               Contracts deployed. SDK published. Keeper running.
               <br />
               Everything is ready — you just need to build.

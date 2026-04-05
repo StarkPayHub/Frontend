@@ -48,6 +48,17 @@ body {
 }
 
 /* ══════════════════════════════════════════
+   PERFORMANCE — force GPU on all animations
+══════════════════════════════════════════ */
+[data-reveal],
+.feat-card,
+.cta-pill,
+.step-line {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* ══════════════════════════════════════════
    SCROLL REVEAL SYSTEM
 ══════════════════════════════════════════ */
 

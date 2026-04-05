@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAccount } from "@starknet-react/core";
 import { Navbar } from "@/components/Navbar";
+import { ConnectWallet } from "@/components/ConnectWallet";
 import { STARKPAY_ADDRESS } from "@/lib/contracts";
 import Link from "next/link";
 
@@ -37,10 +38,81 @@ export default function MerchantPage() {
 
   if (status !== "connected") {
     return (
-      <div className="min-h-screen bg-[#0a0a0a]">
+      <div className="min-h-screen" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(60,20,120,0.3) 0%, rgba(4,2,18,1) 60%)", backgroundColor: "#04020f" }}>
         <Navbar />
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-          <p className="text-zinc-400">Connect your wallet to view merchant dashboard</p>
+        <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
+          {/* Glow backdrop */}
+          <div style={{
+            position: "absolute",
+            width: 500, height: 500,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(109,40,217,0.12) 0%, transparent 70%)",
+            filter: "blur(40px)",
+            pointerEvents: "none",
+          }} />
+
+          <div style={{
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 28,
+            maxWidth: 400,
+            textAlign: "center",
+          }}>
+            {/* Icon */}
+            <div style={{
+              width: 72, height: 72,
+              borderRadius: 20,
+              background: "rgba(109,40,217,0.12)",
+              border: "1px solid rgba(139,92,246,0.25)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 0 40px rgba(109,40,217,0.15)",
+            }}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.85)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+            </div>
+
+            {/* Text */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <h2 style={{
+                fontFamily: "'Syne', sans-serif",
+                fontWeight: 700,
+                fontSize: "1.35rem",
+                color: "#fff",
+                letterSpacing: "-0.01em",
+              }}>
+                Connect your wallet
+              </h2>
+              <p style={{
+                fontSize: "0.875rem",
+                color: "rgba(161,161,170,0.6)",
+                lineHeight: 1.6,
+              }}>
+                Sign in with your Starknet wallet to access the merchant dashboard and manage your plans.
+              </p>
+            </div>
+
+            {/* CTA */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
+              <ConnectWallet />
+              <Link href="/pricing" style={{
+                fontSize: "0.8rem",
+                color: "rgba(139,92,246,0.6)",
+                textDecoration: "none",
+                fontFamily: "monospace",
+                letterSpacing: "0.06em",
+                transition: "color 0.2s",
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#c4b5fd"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(139,92,246,0.6)"; }}
+              >
+                View pricing plans →
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );
