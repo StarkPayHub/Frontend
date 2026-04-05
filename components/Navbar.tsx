@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ConnectWallet } from "./ConnectWallet";
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 
 const links = [
   { href: "/",          label: "Home"      },
@@ -15,85 +15,100 @@ const links = [
 
 export function Navbar() {
   const pathname = usePathname();
-
-  const magRef = useRef<HTMLDivElement>(null);
-  const [mag, setMag] = useState({ x: 0, y: 0 });
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 8);
+    const fn = () => setScrolled(window.scrollY > 12);
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
   return (
-    /* Outer wrapper — sticky, full width, transparent */
-    <div
-      style={{
-        position: "sticky", top: 0, zIndex: 50, width: "100%",
-        padding: "10px 16px",
-        background: scrolled ? "rgba(2,2,10,0.5)" : "transparent",
-        backdropFilter: scrolled ? "blur(8px)" : "none",
-        transition: "background 0.4s",
-      }}
-    >
-      {/* ── Floating pill card ── */}
-      <nav
-        style={{
-          maxWidth: 1100,
-          margin: "0 auto",
-          height: 56,
-          borderRadius: 14,
+    /*
+     * Outer wrapper — fixed, full width, padded on all sides
+     * so the pill "floats" above the page with visible margin.
+     * pointer-events: none lets clicks pass through the empty margin area.
+     */
+    <div style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 100,
+      padding: "14px 20px",
+      pointerEvents: "none",
+    }}>
+      {/* ── Floating pill — matches Superfluid's centered card ── */}
+      <nav style={{
+        maxWidth: 1080,
+        margin: "0 auto",
+        height: 58,
+        borderRadius: 18,            /* Superfluid uses ~18-20px, not a full pill */
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 10px 0 18px",
+        background: "rgba(10,6,28,0.88)",
+        border: "1px solid rgba(139,92,246,0.15)",
+        boxShadow: scrolled
+          ? "0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(139,92,246,0.1)"
+          : "0 4px 24px rgba(0,0,0,0.4)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        transition: "box-shadow 0.3s",
+        pointerEvents: "auto",       /* re-enable on the pill */
+      }}>
+
+        {/* ── Logo — square icon + name ── */}
+        <Link href="/" style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 16px 0 16px",
-          background: "rgba(12,10,26,0.92)",
-          border: "1px solid rgba(255,255,255,0.09)",
-          boxShadow: "0 4px 32px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.04) inset",
-          backdropFilter: "blur(32px) saturate(200%)",
-          WebkitBackdropFilter: "blur(32px) saturate(200%)",
-        }}
-      >
-
-        {/* ── Logo ── */}
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", flexShrink: 0 }}>
-          <div
-            style={{
-              width: 32, height: 32, borderRadius: 9,
-              background: "linear-gradient(145deg,#7c3aed,#4338ca)",
-              boxShadow: "0 2px 10px rgba(124,58,237,0.5)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              transition: "transform 0.25s, box-shadow 0.25s",
-            }}
-            onMouseEnter={e => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.transform = "scale(1.1) rotate(-5deg)";
-              el.style.boxShadow = "0 0 20px rgba(139,92,246,0.75)";
-            }}
-            onMouseLeave={e => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.transform = "";
-              el.style.boxShadow = "0 2px 10px rgba(124,58,237,0.5)";
-            }}
-          >
+          gap: 10,
+          textDecoration: "none",
+          flexShrink: 0,
+        }}>
+          {/* Square logo mark — like Superfluid's [+] icon */}
+          <div style={{
+            width: 34,
+            height: 34,
+            borderRadius: 9,
+            background: "linear-gradient(135deg, #7c3aed 0%, #4338ca 100%)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            boxShadow: "0 2px 8px rgba(124,58,237,0.35)",
+          }}>
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-              <path d="M11 4.5C10 3.5 9 3 7.5 3C5.5 3 4 4.2 4 5.7C4 7.2 5.5 8 8 8.5C10.5 9 12 9.8 12 11.3C12 12.8 10.5 14 8 14C6 14 4.5 13 4 12"
-                stroke="white" strokeWidth="1.6" strokeLinecap="round"/>
+              <path
+                d="M11 4.5C10 3.5 9 3 7.5 3C5.5 3 4 4.2 4 5.7C4 7.2 5.5 8 8 8.5C10.5 9 12 9.8 12 11.3C12 12.8 10.5 14 8 14C6 14 4.5 13 4 12"
+                stroke="white"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
             </svg>
           </div>
+
           <span style={{
             fontFamily: "'Syne', sans-serif",
-            fontWeight: 700, fontSize: 14.5,
-            letterSpacing: "0.1em",
-            color: "rgba(255,255,255,0.9)",
+            fontWeight: 700,
+            fontSize: 15,
+            letterSpacing: "0.04em",
+            color: "rgba(255,255,255,0.92)",
           }}>
-            STARKPAYHUB
+            StarkPayHub
           </span>
         </Link>
 
-        {/* ── Nav links ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+        {/* ── Nav links — flat centered, Superfluid style ── */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0,
+          position: "absolute",
+          left: "50%",
+          transform: "translateX(-50%)",
+        }}>
           {links.map(({ href, label }) => {
             const active = pathname === href;
             return (
@@ -101,63 +116,36 @@ export function Navbar() {
                 key={href}
                 href={href}
                 style={{
-                  position: "relative",
-                  padding: "6px 14px",
-                  fontSize: 13.5,
-                  fontWeight: active ? 600 : 400,
-                  color: active ? "#fff" : "rgba(161,161,170,0.55)",
+                  padding: "8px 16px",
+                  fontFamily: "'Syne', sans-serif",
+                  fontSize: 14.5,
+                  fontWeight: 400,
+                  color: active ? "#fff" : "rgba(180,170,220,0.5)",
                   textDecoration: "none",
-                  transition: "color 0.15s",
-                  letterSpacing: "0.01em",
+                  borderRadius: 10,
+                  transition: "color 0.15s, background 0.15s",
                   whiteSpace: "nowrap",
+                  background: "transparent",
                 }}
                 onMouseEnter={e => {
-                  if (!active)(e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.8)";
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.color = "#fff";
+                  el.style.background = "rgba(139,92,246,0.1)";
                 }}
                 onMouseLeave={e => {
-                  if (!active)(e.currentTarget as HTMLElement).style.color = "rgba(161,161,170,0.55)";
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.color = active ? "#fff" : "rgba(180,170,220,0.5)";
+                  el.style.background = "transparent";
                 }}
               >
                 {label}
-
-                {/* Short centered underline — exact reference style */}
-                <span style={{
-                  position: "absolute",
-                  bottom: -1,
-                  left: "50%", transform: "translateX(-50%)",
-                  width: active ? 22 : 0,
-                  height: 2,
-                  borderRadius: 2,
-                  background: "linear-gradient(90deg,#8b5cf6,#6366f1)",
-                  boxShadow: "0 0 8px rgba(139,92,246,1)",
-                  transition: "width 0.25s cubic-bezier(.4,0,.2,1)",
-                  display: "block",
-                }} />
               </Link>
             );
           })}
         </div>
 
-        {/* ── Magnetic CTA ── */}
-        <div
-          ref={magRef}
-          onMouseMove={e => {
-            const r = magRef.current?.getBoundingClientRect();
-            if (!r) return;
-            setMag({
-              x: (e.clientX - r.left - r.width  / 2) * 0.28,
-              y: (e.clientY - r.top  - r.height / 2) * 0.28,
-            });
-          }}
-          onMouseLeave={() => setMag({ x: 0, y: 0 })}
-          style={{
-            transform: `translate(${mag.x}px,${mag.y}px)`,
-            transition: "transform 0.4s cubic-bezier(.2,.8,.2,1)",
-            flexShrink: 0,
-          }}
-        >
-          <ConnectWallet />
-        </div>
+        {/* ── CTA — dark oval filled button (Superfluid "Contact" style) ── */}
+        <ConnectWallet />
 
       </nav>
     </div>

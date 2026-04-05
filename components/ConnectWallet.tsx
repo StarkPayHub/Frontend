@@ -64,11 +64,19 @@ export function ConnectWallet() {
     return (
       <button
         onClick={() => disconnect()}
-        className="group flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200"
         style={{
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          color: "rgba(228,228,231,0.8)",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "8px 18px",
+          borderRadius: 999,
+          background: "rgba(139,92,246,0.15)",
+          border: "1px solid rgba(139,92,246,0.3)",
+          color: "rgba(196,181,253,0.9)",
+          fontSize: 13,
+          fontWeight: 500,
+          cursor: "pointer",
+          transition: "background 0.2s",
         }}
         onMouseEnter={e => (e.currentTarget.style.background = "rgba(239,68,68,0.08)")}
         onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
@@ -87,28 +95,31 @@ export function ConnectWallet() {
       {/* Trigger button */}
       <button
         onClick={() => setOpen(true)}
-        className="relative flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold text-white overflow-hidden transition-all duration-200"
         style={{
-          background: "linear-gradient(135deg, #7c3aed 0%, #4338ca 100%)",
-          boxShadow: "0 0 0 0 rgba(124,58,237,0)",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "9px 22px",
+          borderRadius: 999,
+          background: "#7c3aed",
+          color: "#fff",
+          fontSize: 14,
+          fontWeight: 600,
+          fontFamily: "'Syne', sans-serif",
+          border: "none",
+          cursor: "pointer",
+          transition: "background 0.2s, transform 0.15s",
+          whiteSpace: "nowrap",
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.boxShadow = "0 0 28px rgba(124,58,237,0.55), inset 0 1px 0 rgba(255,255,255,0.15)";
+          e.currentTarget.style.background = "#6d28d9";
           e.currentTarget.style.transform = "translateY(-1px)";
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.boxShadow = "0 0 0 0 rgba(124,58,237,0)";
+          e.currentTarget.style.background = "#7c3aed";
           e.currentTarget.style.transform = "translateY(0)";
         }}
       >
-        {/* Shimmer */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.12) 50%, transparent 60%)",
-            backgroundSize: "200% 100%",
-          }}
-        />
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="opacity-90 relative">
           <rect x="1" y="4" width="14" height="10" rx="2.5" stroke="white" strokeWidth="1.5"/>
           <path d="M1 7.5h14" stroke="white" strokeWidth="1.5"/>
