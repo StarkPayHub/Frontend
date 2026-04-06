@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useAccount, useDisconnect } from "@starknet-react/core";
+import { useStarkzap } from "@/components/StarkzapProvider";
 import { ClaimUSDC } from "@/components/ClaimUSDC";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { KpiSkeleton, SubRowSkeleton } from "@/components/Skeleton";
+import { Toast } from "@/components/Toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -82,7 +84,11 @@ function Sidebar({ address, section, setSection }: { address?: string; section: 
         <div className="mt-auto pt-4 border-t border-white/[0.06] space-y-2">
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.04]">
             <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" style={{ boxShadow: "0 0 6px rgba(52,211,153,0.8)" }} />
-            <span className="font-mono text-xs text-zinc-400 truncate">{address.slice(0, 8)}…{address.slice(-4)}</span>
+            {address.startsWith("0x") ? (
+              <span className="font-mono text-xs text-zinc-400 truncate">{address.slice(0, 8)}…{address.slice(-4)}</span>
+            ) : (
+              <span className="text-xs text-zinc-400 truncate">{address}</span>
+            )}
           </div>
           <button onClick={() => { disconnect(); router.push("/"); }}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-zinc-600 hover:text-red-400 hover:bg-red-500/5 transition-colors">
@@ -95,10 +101,31 @@ function Sidebar({ address, section, setSection }: { address?: string; section: 
   );
 }
 
+// ── Empty state ───────────────────────────────────────────────────────────────
+function EmptyState({ icon, title, desc, action }: { icon: React.ReactNode; title: string; desc: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+      <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">{icon}</div>
+      <div className="text-center">
+        <p className="text-sm font-medium text-zinc-300">{title}</p>
+        <p className="text-xs text-zinc-600 mt-1">{desc}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
 // ── Section: My Subscriptions ─────────────────────────────────────────────────
 function SectionSubscriptions() {
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  function handleCancel(planName: string) {
+    // In production: call contract's cancel entrypoint here
+    setToast({ message: `Cancellation requested for ${planName}`, type: "success" });
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 section-fade">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">My Subscriptions</h1>
@@ -120,40 +147,51 @@ function SectionSubscriptions() {
         ))}
       </div>
 
-      <div className="space-y-3">
-        {mockSubs.map((sub) => {
-          const isActive = sub.variant === "emerald";
-          return (
-            <div key={sub.planId}
-              className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] transition-colors"
-              style={{ border: `1px solid ${isActive ? "rgba(52,211,153,0.15)" : "rgba(245,158,11,0.15)"}` }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{
-                  background: isActive ? "rgba(109,40,217,0.18)" : "rgba(217,119,6,0.18)",
-                  border: `1px solid ${isActive ? "rgba(139,92,246,0.3)" : "rgba(245,158,11,0.3)"}`,
-                  color: isActive ? "rgba(167,139,250,1)" : "rgba(251,191,36,0.9)",
-                }}>
-                {isActive ? IcoBolt : IcoSparkles}
+      {mockSubs.length === 0 ? (
+        <EmptyState
+          icon={IcoCard}
+          title="No active subscriptions"
+          desc="Subscribe to a plan to get started"
+          action={<Link href="/pricing" className="text-xs font-mono text-violet-400 hover:text-violet-300 transition-colors">Browse plans →</Link>}
+        />
+      ) : (
+        <div className="space-y-3">
+          {mockSubs.map((sub) => {
+            const isActive = sub.variant === "emerald";
+            return (
+              <div key={sub.planId}
+                className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] transition-colors"
+                style={{ border: `1px solid ${isActive ? "rgba(52,211,153,0.15)" : "rgba(245,158,11,0.15)"}` }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: isActive ? "rgba(109,40,217,0.18)" : "rgba(217,119,6,0.18)",
+                    border: `1px solid ${isActive ? "rgba(139,92,246,0.3)" : "rgba(245,158,11,0.3)"}`,
+                    color: isActive ? "rgba(167,139,250,1)" : "rgba(251,191,36,0.9)",
+                  }}>
+                  {isActive ? IcoBolt : IcoSparkles}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-white text-sm">{sub.name}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5 truncate">Renews {sub.renewsAt} · {sub.price}</p>
+                </div>
+                <span className="px-3 py-1 rounded-full text-xs font-mono flex-shrink-0"
+                  style={{
+                    background: isActive ? "rgba(52,211,153,0.1)" : "rgba(245,158,11,0.1)",
+                    border: `1px solid ${isActive ? "rgba(52,211,153,0.3)" : "rgba(245,158,11,0.3)"}`,
+                    color: isActive ? "#34d399" : "#fbbf24",
+                  }}>
+                  ● {isActive ? "Active" : "Renewing"}
+                </span>
+                <button onClick={() => handleCancel(sub.name)}
+                  className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-xs text-zinc-500 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 transition-all flex-shrink-0">
+                  Cancel
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-white text-sm">{sub.name}</p>
-                <p className="text-xs text-zinc-500 mt-0.5 truncate">Renews {sub.renewsAt} · {sub.price}</p>
-              </div>
-              <span className="px-3 py-1 rounded-full text-xs font-mono flex-shrink-0"
-                style={{
-                  background: isActive ? "rgba(52,211,153,0.1)" : "rgba(245,158,11,0.1)",
-                  border: `1px solid ${isActive ? "rgba(52,211,153,0.3)" : "rgba(245,158,11,0.3)"}`,
-                  color: isActive ? "#34d399" : "#fbbf24",
-                }}>
-                ● {isActive ? "Active" : "Renewing"}
-              </span>
-              <button className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-xs text-zinc-500 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 transition-all flex-shrink-0">
-                Cancel
-              </button>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
+      {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
     </div>
   );
 }
@@ -161,7 +199,7 @@ function SectionSubscriptions() {
 // ── Section: Payment History ──────────────────────────────────────────────────
 function SectionHistory() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 section-fade">
       <div>
         <h1 className="text-2xl font-bold text-white tracking-tight">Payment History</h1>
         <p className="text-sm text-zinc-500 mt-1">All auto-renewal transactions on Starknet</p>
@@ -184,39 +222,45 @@ function SectionHistory() {
         <div className="px-6 py-4 border-b border-white/[0.06]">
           <h2 className="font-semibold text-white text-sm">Transactions</h2>
         </div>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-white/[0.04]">
-              {["Date", "Plan", "Amount", "Status", "Tx Hash"].map((h) => (
-                <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {mockHistory.map((row) => (
-              <tr key={row.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                <td className="px-6 py-4 text-xs text-zinc-400 font-mono">{row.date}</td>
-                <td className="px-6 py-4 text-sm text-white">{row.plan}</td>
-                <td className="px-6 py-4 text-sm font-mono text-zinc-300">{row.amount}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-mono ${
-                    row.status === "Success"
-                      ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
-                      : "bg-red-500/10 border border-red-500/30 text-red-400"
-                  }`}>
-                    {row.status === "Success" ? "● Success" : "✕ Failed"}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <a href={`https://sepolia.voyager.online/tx/${row.tx}`} target="_blank" rel="noopener noreferrer"
-                    className="font-mono text-xs text-violet-400 hover:text-violet-300 transition-colors">
-                    {row.tx} ↗
-                  </a>
-                </td>
+        {mockHistory.length === 0 ? (
+          <div className="px-6 py-16">
+            <EmptyState icon={IcoHistory} title="No transactions yet" desc="Your payment history will appear here after your first renewal" />
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/[0.04]">
+                {["Date", "Plan", "Amount", "Status", "Tx Hash"].map((h) => (
+                  <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {mockHistory.map((row) => (
+                <tr key={row.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
+                  <td className="px-6 py-4 text-xs text-zinc-400 font-mono">{row.date}</td>
+                  <td className="px-6 py-4 text-sm text-white">{row.plan}</td>
+                  <td className="px-6 py-4 text-sm font-mono text-zinc-300">{row.amount}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-mono ${
+                      row.status === "Success"
+                        ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
+                        : "bg-red-500/10 border border-red-500/30 text-red-400"
+                    }`}>
+                      {row.status === "Success" ? "● Success" : "✕ Failed"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <a href={`https://sepolia.voyager.online/tx/${row.tx}`} target="_blank" rel="noopener noreferrer"
+                      className="font-mono text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                      {row.tx} ↗
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
@@ -228,7 +272,7 @@ function SectionSettings({ address }: { address?: string }) {
   const router = useRouter();
 
   return (
-    <div className="space-y-6 max-w-xl">
+    <div className="space-y-6 max-w-xl section-fade">
       <div>
         <h1 className="text-2xl font-bold text-white tracking-tight">Settings</h1>
         <p className="text-sm text-zinc-500 mt-1">Manage your account preferences</p>
@@ -351,18 +395,23 @@ function NotConnected() {
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { address, status } = useAccount();
+  const { privyAuthenticated, privyEmail } = useStarkzap();
   const [section, setSection] = useState<Section>("subscriptions");
 
+  const isAuth = status === "connected" || privyAuthenticated;
+  // Display identifier: prefer wallet address, fall back to Privy email
+  const displayId = address ?? privyEmail ?? undefined;
+
   if (status === "reconnecting") return <DashboardSkeleton />;
-  if (status !== "connected")    return <NotConnected />;
+  if (!isAuth) return <NotConnected />;
 
   return (
     <div className="min-h-screen flex" style={BG}>
-      <Sidebar address={address} section={section} setSection={setSection} />
+      <Sidebar address={displayId} section={section} setSection={setSection} />
       <main className="flex-1 p-8 min-w-0">
         {section === "subscriptions" && <SectionSubscriptions />}
         {section === "history"       && <SectionHistory />}
-        {section === "settings"      && <SectionSettings address={address} />}
+        {section === "settings"      && <SectionSettings address={displayId} />}
       </main>
     </div>
   );

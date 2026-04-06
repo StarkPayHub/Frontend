@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useAccount, useDisconnect } from "@starknet-react/core";
+import { useStarkzap } from "@/components/StarkzapProvider";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { KpiSkeleton, TableRowSkeleton } from "@/components/Skeleton";
+import { Toast } from "@/components/Toast";
 import { STARKPAY_ADDRESS } from "@/lib/contracts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -89,7 +91,11 @@ function Sidebar({ address, section, setSection }: { address?: string; section: 
         <div className="mt-auto pt-4 border-t border-white/[0.06] space-y-2">
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.04]">
             <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" style={{ boxShadow: "0 0 6px rgba(52,211,153,0.8)" }} />
-            <span className="font-mono text-xs text-zinc-400 truncate">{address.slice(0, 8)}…{address.slice(-4)}</span>
+            {address.startsWith("0x") ? (
+              <span className="font-mono text-xs text-zinc-400 truncate">{address.slice(0, 8)}…{address.slice(-4)}</span>
+            ) : (
+              <span className="text-xs text-zinc-400 truncate">{address}</span>
+            )}
           </div>
           <button onClick={() => { disconnect(); router.push("/"); }}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-zinc-600 hover:text-red-400 hover:bg-red-500/5 transition-colors">
@@ -102,10 +108,25 @@ function Sidebar({ address, section, setSection }: { address?: string; section: 
   );
 }
 
+// ── Empty state ────────────────────────────────────────────────────────────────
+function EmptyState({ icon, title, desc, action }: { icon: React.ReactNode; title: string; desc: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+      <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">{icon}</div>
+      <div className="text-center">
+        <p className="text-sm font-medium text-zinc-300">{title}</p>
+        <p className="text-xs text-zinc-600 mt-1">{desc}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
 // ── Section: Revenue ──────────────────────────────────────────────────────────
 function SectionRevenue({ account, address }: { account: any; address?: string }) {
   const [withdrawing, setWithdrawing] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   async function handleWithdraw() {
     if (!account) return;
@@ -113,15 +134,17 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
     try {
       const result = await account.execute([{ contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }]);
       setTxHash(result.transaction_hash);
+      setToast({ message: "Withdrawal submitted — funds on the way!", type: "success" });
     } catch (err) {
       console.error("Withdraw failed:", err);
+      setToast({ message: "Withdrawal failed. Please try again.", type: "error" });
     } finally {
       setWithdrawing(false);
     }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 section-fade">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Merchant Revenue</h1>
@@ -160,26 +183,33 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
         <div className="px-6 py-4 border-b border-white/[0.06]">
           <h2 className="font-semibold text-white text-sm">Active Plans Summary</h2>
         </div>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-white/[0.04]">
-              {["Plan", "Price", "Subscribers", "Monthly Revenue"].map((h) => (
-                <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {mockPlans.filter(p => p.status === "Active").map((plan) => (
-              <tr key={plan.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                <td className="px-6 py-4 text-sm text-white">{plan.name}</td>
-                <td className="px-6 py-4 text-sm font-mono text-zinc-400">{plan.price}</td>
-                <td className="px-6 py-4 text-sm font-mono text-zinc-400">{plan.subs}</td>
-                <td className="px-6 py-4 text-sm font-mono text-emerald-400">{plan.revenue}</td>
+        {mockPlans.filter(p => p.status === "Active").length === 0 ? (
+          <div className="px-6 py-12">
+            <EmptyState icon={IcoRevenue} title="No active plans yet" desc="Create a plan to start earning" />
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/[0.04]">
+                {["Plan", "Price", "Subscribers", "Monthly Revenue"].map((h) => (
+                  <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {mockPlans.filter(p => p.status === "Active").map((plan) => (
+                <tr key={plan.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
+                  <td className="px-6 py-4 text-sm text-white">{plan.name}</td>
+                  <td className="px-6 py-4 text-sm font-mono text-zinc-400">{plan.price}</td>
+                  <td className="px-6 py-4 text-sm font-mono text-zinc-400">{plan.subs}</td>
+                  <td className="px-6 py-4 text-sm font-mono text-emerald-400">{plan.revenue}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
+      {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
     </div>
   );
 }
@@ -191,7 +221,7 @@ function SectionPlans() {
   const [price, setPrice] = useState("");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 section-fade">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">My Plans</h1>
@@ -231,38 +261,48 @@ function SectionPlans() {
       )}
 
       <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-white/[0.04]">
-              {["Plan Name", "Price", "Interval", "Subscribers", "Revenue", "Status", ""].map((h) => (
-                <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {mockPlans.map((plan) => (
-              <tr key={plan.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                <td className="px-6 py-4 text-sm text-white font-medium">{plan.name}</td>
-                <td className="px-6 py-4 text-sm font-mono text-zinc-400">{plan.price}</td>
-                <td className="px-6 py-4 text-sm text-zinc-400">{plan.interval}</td>
-                <td className="px-6 py-4 text-sm font-mono text-zinc-400">{plan.subs}</td>
-                <td className="px-6 py-4 text-sm font-mono text-emerald-400">{plan.revenue}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-mono ${
-                    plan.status === "Active"
-                      ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
-                      : "bg-zinc-500/10 border border-zinc-500/30 text-zinc-400"
-                  }`}>
-                    {plan.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <button className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors">Edit</button>
-                </td>
+        {mockPlans.length === 0 ? (
+          <div className="px-6 py-16">
+            <EmptyState
+              icon={IcoPlans}
+              title="No plans created yet"
+              desc="Click 'New Plan' above to create your first subscription plan"
+            />
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/[0.04]">
+                {["Plan Name", "Price", "Interval", "Subscribers", "Revenue", "Status", ""].map((h) => (
+                  <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {mockPlans.map((plan) => (
+                <tr key={plan.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
+                  <td className="px-6 py-4 text-sm text-white font-medium">{plan.name}</td>
+                  <td className="px-6 py-4 text-sm font-mono text-zinc-400">{plan.price}</td>
+                  <td className="px-6 py-4 text-sm text-zinc-400">{plan.interval}</td>
+                  <td className="px-6 py-4 text-sm font-mono text-zinc-400">{plan.subs}</td>
+                  <td className="px-6 py-4 text-sm font-mono text-emerald-400">{plan.revenue}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-mono ${
+                      plan.status === "Active"
+                        ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
+                        : "bg-zinc-500/10 border border-zinc-500/30 text-zinc-400"
+                    }`}>
+                      {plan.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <button className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors">Edit</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
@@ -271,7 +311,7 @@ function SectionPlans() {
 // ── Section: Subscribers ──────────────────────────────────────────────────────
 function SectionSubscribers() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 section-fade">
       <div>
         <h1 className="text-2xl font-bold text-white tracking-tight">Subscribers</h1>
         <p className="text-sm text-zinc-500 mt-1">All active and at-risk subscriptions</p>
@@ -294,34 +334,40 @@ function SectionSubscribers() {
         <div className="px-6 py-4 border-b border-white/[0.06]">
           <h2 className="font-semibold text-white text-sm">Subscriber List</h2>
         </div>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-white/[0.04]">
-              {["Wallet", "Plan", "Since", "Next Renewal", "Status"].map((h) => (
-                <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {mockSubscribers.map((sub) => (
-              <tr key={sub.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                <td className="px-6 py-4 font-mono text-xs text-zinc-400">{sub.address}</td>
-                <td className="px-6 py-4 text-sm text-white">{sub.plan}</td>
-                <td className="px-6 py-4 text-xs text-zinc-500 font-mono">{sub.since}</td>
-                <td className="px-6 py-4 text-xs text-zinc-400 font-mono">{sub.nextRenewal}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-mono ${
-                    sub.status === "Active"
-                      ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
-                      : "bg-red-500/10 border border-red-500/30 text-red-400"
-                  }`}>
-                    {sub.status === "Active" ? "● Active" : "✕ Failed"}
-                  </span>
-                </td>
+        {mockSubscribers.length === 0 ? (
+          <div className="px-6 py-16">
+            <EmptyState icon={IcoSubscribers} title="No subscribers yet" desc="Share your plan links to start getting subscribers" />
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/[0.04]">
+                {["Wallet", "Plan", "Since", "Next Renewal", "Status"].map((h) => (
+                  <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {mockSubscribers.map((sub) => (
+                <tr key={sub.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
+                  <td className="px-6 py-4 font-mono text-xs text-zinc-400">{sub.address}</td>
+                  <td className="px-6 py-4 text-sm text-white">{sub.plan}</td>
+                  <td className="px-6 py-4 text-xs text-zinc-500 font-mono">{sub.since}</td>
+                  <td className="px-6 py-4 text-xs text-zinc-400 font-mono">{sub.nextRenewal}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-mono ${
+                      sub.status === "Active"
+                        ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
+                        : "bg-red-500/10 border border-red-500/30 text-red-400"
+                    }`}>
+                      {sub.status === "Active" ? "● Active" : "✕ Failed"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
@@ -331,6 +377,7 @@ function SectionSubscribers() {
 function SectionWithdrawals({ account }: { account: any }) {
   const [withdrawing, setWithdrawing] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   async function handleWithdraw() {
     if (!account) return;
@@ -338,15 +385,17 @@ function SectionWithdrawals({ account }: { account: any }) {
     try {
       const result = await account.execute([{ contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }]);
       setTxHash(result.transaction_hash);
+      setToast({ message: "Withdrawal submitted — funds on the way!", type: "success" });
     } catch (err) {
       console.error("Withdraw failed:", err);
+      setToast({ message: "Withdrawal failed. Please try again.", type: "error" });
     } finally {
       setWithdrawing(false);
     }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 section-fade">
       <div>
         <h1 className="text-2xl font-bold text-white tracking-tight">Withdrawals</h1>
         <p className="text-sm text-zinc-500 mt-1">Withdraw your accumulated USDC balance</p>
@@ -388,30 +437,37 @@ function SectionWithdrawals({ account }: { account: any }) {
         <div className="px-6 py-4 border-b border-white/[0.06]">
           <h2 className="font-semibold text-white text-sm">Withdrawal History</h2>
         </div>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-white/[0.04]">
-              {["Date", "Amount", "Tx Hash"].map((h) => (
-                <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {mockWithdrawals.map((w) => (
-              <tr key={w.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                <td className="px-6 py-4 text-xs text-zinc-400 font-mono">{w.date}</td>
-                <td className="px-6 py-4 text-sm font-mono text-emerald-400">{w.amount}</td>
-                <td className="px-6 py-4">
-                  <a href={`https://sepolia.voyager.online/tx/${w.tx}`} target="_blank" rel="noopener noreferrer"
-                    className="font-mono text-xs text-violet-400 hover:text-violet-300 transition-colors">
-                    {w.tx} ↗
-                  </a>
-                </td>
+        {mockWithdrawals.length === 0 ? (
+          <div className="px-6 py-16">
+            <EmptyState icon={IcoWithdraw} title="No withdrawals yet" desc="Your withdrawal history will appear here" />
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/[0.04]">
+                {["Date", "Amount", "Tx Hash"].map((h) => (
+                  <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {mockWithdrawals.map((w) => (
+                <tr key={w.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
+                  <td className="px-6 py-4 text-xs text-zinc-400 font-mono">{w.date}</td>
+                  <td className="px-6 py-4 text-sm font-mono text-emerald-400">{w.amount}</td>
+                  <td className="px-6 py-4">
+                    <a href={`https://sepolia.voyager.online/tx/${w.tx}`} target="_blank" rel="noopener noreferrer"
+                      className="font-mono text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                      {w.tx} ↗
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
+      {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
     </div>
   );
 }
@@ -471,16 +527,20 @@ function NotConnected() {
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function MerchantPage() {
   const { account, address, status } = useAccount();
+  const { privyAuthenticated, privyEmail } = useStarkzap();
   const [section, setSection] = useState<Section>("revenue");
 
+  const isAuth = status === "connected" || privyAuthenticated;
+  const displayId = address ?? privyEmail ?? undefined;
+
   if (status === "reconnecting") return <MerchantSkeleton />;
-  if (status !== "connected")    return <NotConnected />;
+  if (!isAuth) return <NotConnected />;
 
   return (
     <div className="min-h-screen flex" style={BG}>
-      <Sidebar address={address} section={section} setSection={setSection} />
+      <Sidebar address={displayId} section={section} setSection={setSection} />
       <main className="flex-1 p-8 min-w-0">
-        {section === "revenue"     && <SectionRevenue account={account} address={address} />}
+        {section === "revenue"     && <SectionRevenue account={account} address={displayId} />}
         {section === "plans"       && <SectionPlans />}
         {section === "subscribers" && <SectionSubscribers />}
         {section === "withdrawals" && <SectionWithdrawals account={account} />}

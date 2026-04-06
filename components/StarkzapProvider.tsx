@@ -15,7 +15,7 @@
  */
 
 import { createContext, useContext, useRef, useEffect, useState, ReactNode } from "react";
-import { PrivyProvider } from "@privy-io/react-auth";
+import { PrivyProvider, usePrivy } from "@privy-io/react-auth";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,22 +24,38 @@ type StarkZapSDK = any;
 interface StarkzapContextValue {
   sdk: StarkZapSDK | null;
   privyReady: boolean;
+  /** true when user is logged in via Privy (Google/Email) */
+  privyAuthenticated: boolean;
+  /** email/google address of the Privy user, or null */
+  privyEmail: string | null;
+  /** call to log out of Privy */
+  privyLogout: (() => Promise<void>) | null;
 }
 
-const StarkzapContext = createContext<StarkzapContextValue>({ sdk: null, privyReady: false });
+const StarkzapContext = createContext<StarkzapContextValue>({
+  sdk: null,
+  privyReady: false,
+  privyAuthenticated: false,
+  privyEmail: null,
+  privyLogout: null,
+});
 
 export function useStarkzap() {
   return useContext(StarkzapContext);
 }
 
-// ── Inner wrapper (client-only) ───────────────────────────────────────────────
+// ── Inner wrapper (client-only, inside PrivyProvider) ─────────────────────────
 function StarkzapInner({ children }: { children: ReactNode }) {
   const sdkRef = useRef<StarkZapSDK | null>(null);
+  const { authenticated, user, logout } = usePrivy();
 
-  // When starkzap is published and installed:
-  //   1. pnpm add starkzap
-  //   2. Remove "starkzap": false from next.config.mjs
-  //   3. Uncomment below:
+  const privyEmail =
+    user?.google?.email ??
+    user?.email?.address ??
+    null;
+
+  // When starkzap is published:
+  //   pnpm add starkzap → uncomment below
   //
   // if (sdkRef.current === null) {
   //   const { StarkZap } = require("starkzap");
@@ -50,7 +66,13 @@ function StarkzapInner({ children }: { children: ReactNode }) {
   // }
 
   return (
-    <StarkzapContext.Provider value={{ sdk: sdkRef.current, privyReady: true }}>
+    <StarkzapContext.Provider value={{
+      sdk: sdkRef.current,
+      privyReady: true,
+      privyAuthenticated: authenticated,
+      privyEmail,
+      privyLogout: logout,
+    }}>
       {children}
     </StarkzapContext.Provider>
   );
@@ -69,7 +91,7 @@ export function StarkzapProvider({ children }: { children: ReactNode }) {
   // SSR / no appId: render children without Privy (social login disabled)
   if (!mounted || !hasValidAppId) {
     return (
-      <StarkzapContext.Provider value={{ sdk: null, privyReady: false }}>
+      <StarkzapContext.Provider value={{ sdk: null, privyReady: false, privyAuthenticated: false, privyEmail: null, privyLogout: null }}>
         {children}
       </StarkzapContext.Provider>
     );
@@ -79,10 +101,13 @@ export function StarkzapProvider({ children }: { children: ReactNode }) {
     <PrivyProvider
       appId={privyAppId}
       config={{
-        loginMethods: ["google", "email", "twitter"],
+        loginMethods: ["google", "email"],
         appearance: {
           theme: "dark",
           accentColor: "#7c3aed",
+          logo: "/logo-sm.png",
+          landingHeader: "Sign in to StarkPayHub",
+          loginMessage: "Connect with Google or Email to access gasless subscriptions on Starknet.",
         },
         embeddedWallets: {
           ethereum: { createOnLogin: "users-without-wallets" },

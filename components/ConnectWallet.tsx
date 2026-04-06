@@ -38,15 +38,17 @@ export function ConnectWallet() {
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
   const [open, setOpen] = useState(false);
+  const [walletMenu, setWalletMenu] = useState(false);
   const [connecting, setConnecting] = useState<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const walletMenuRef = useRef<HTMLDivElement>(null);
 
   /* close on overlay click */
   const handleOverlay = (e: React.MouseEvent) => {
     if (e.target === overlayRef.current) setOpen(false);
   };
 
-  /* close on Escape */
+  /* close connect modal on Escape */
   useEffect(() => {
     if (!open) return;
     const fn = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -54,39 +56,98 @@ export function ConnectWallet() {
     return () => window.removeEventListener("keydown", fn);
   }, [open]);
 
+  /* close wallet dropdown on outside click or Escape */
+  useEffect(() => {
+    if (!walletMenu) return;
+    const onMouse = (e: MouseEvent) => {
+      if (walletMenuRef.current && !walletMenuRef.current.contains(e.target as Node))
+        setWalletMenu(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setWalletMenu(false); };
+    document.addEventListener("mousedown", onMouse);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onMouse);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [walletMenu]);
+
   const handleConnect = async (connector: typeof connectors[0]) => {
     setConnecting(connector.id);
     try { connect({ connector }); }
     finally { setConnecting(null); setOpen(false); }
   };
 
-  /* ── Connected ── */
+  /* ── Connected — dropdown menu ── */
   if (status === "connected" && address) {
     return (
-      <button
-        onClick={() => disconnect()}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 18px",
-          borderRadius: 999,
-          background: "rgba(139,92,246,0.15)",
-          border: "1px solid rgba(139,92,246,0.3)",
-          color: "rgba(196,181,253,0.9)",
-          fontSize: 13,
-          fontWeight: 500,
-          cursor: "pointer",
-          transition: "background 0.2s",
-        }}
-        onMouseEnter={e => (e.currentTarget.style.background = "rgba(239,68,68,0.08)")}
-        onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
-      >
-        <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"
-          style={{ boxShadow: "0 0 8px rgba(52,211,153,0.8)" }} />
-        <span className="font-mono">{address.slice(0,6)}…{address.slice(-4)}</span>
-        <span className="text-zinc-600 group-hover:text-red-400 transition-colors text-xs ml-1">✕</span>
-      </button>
+      <div ref={walletMenuRef} style={{ position: "relative" }}>
+        <button
+          onClick={() => setWalletMenu(o => !o)}
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "8px 16px", borderRadius: 999,
+            background: walletMenu ? "rgba(139,92,246,0.2)" : "rgba(139,92,246,0.12)",
+            border: "1px solid rgba(139,92,246,0.28)",
+            color: "rgba(196,181,253,0.9)", fontSize: 13, fontWeight: 500,
+            cursor: "pointer", transition: "background 0.2s",
+          }}
+          onMouseEnter={e => { if (!walletMenu) e.currentTarget.style.background = "rgba(139,92,246,0.2)"; }}
+          onMouseLeave={e => { if (!walletMenu) e.currentTarget.style.background = "rgba(139,92,246,0.12)"; }}
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"
+            style={{ boxShadow: "0 0 8px rgba(52,211,153,0.8)" }} />
+          <span className="font-mono">{address.slice(0,6)}…{address.slice(-4)}</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
+            style={{ flexShrink: 0, transition: "transform 0.2s", transform: walletMenu ? "rotate(180deg)" : "rotate(0deg)", opacity: 0.45 }}>
+            <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </button>
+
+        {walletMenu && (
+          <div style={{
+            position: "absolute", top: "calc(100% + 10px)", right: 0, minWidth: 220,
+            borderRadius: 14,
+            background: "rgba(10,7,26,0.96)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            boxShadow: "0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(139,92,246,0.08)",
+            backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+            overflow: "hidden", zIndex: 200,
+            animation: "toast-in 0.18s cubic-bezier(.16,1,.3,1)",
+          }}>
+            {/* Wallet info */}
+            <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <p style={{ fontSize: 11, color: "rgba(161,161,170,0.5)", fontFamily: "monospace", letterSpacing: "0.06em", marginBottom: 4 }}>
+                CONNECTED WALLET
+              </p>
+              <p style={{ fontSize: 13, color: "rgba(196,181,253,0.85)", fontFamily: "ui-monospace,'SF Mono',monospace" }}>
+                {address.slice(0,10)}…{address.slice(-6)}
+              </p>
+            </div>
+            {/* Actions */}
+            <div style={{ padding: "6px" }}>
+              <button
+                onClick={() => { disconnect(); setWalletMenu(false); }}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 8,
+                  padding: "9px 10px", borderRadius: 8, background: "none", border: "none",
+                  color: "rgba(248,113,113,0.85)", fontSize: 13, cursor: "pointer",
+                  fontFamily: "'Syne',sans-serif", transition: "background 0.15s", textAlign: "left",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.1)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "none"; }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Disconnect wallet
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     );
   }
 

@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { MatrixBackground } from "@/components/MatrixBackground";
+import { PrivySocialButton } from "@/components/PrivySocialButton";
+import { ConnectWallet } from "@/components/ConnectWallet";
+import { useAccount } from "@starknet-react/core";
+import { useStarkzap } from "@/components/StarkzapProvider";
 
 /* ─────────────────────────────────────────────
    Single IntersectionObserver for all sections
@@ -112,6 +116,9 @@ function FlowDivider() {
 
 export default function Home() {
   useScrollReveal();
+  const { status } = useAccount();
+  const { privyAuthenticated } = useStarkzap();
+  const isAuth = status === "connected" || privyAuthenticated;
 
   return (
     <>
@@ -152,16 +159,34 @@ export default function Home() {
             </p>
 
             <div className="flex flex-col items-center gap-3 mt-2">
-              <Link href="/dashboard" className="cta-pill"
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 10,
-                  padding: "14px 36px", borderRadius: 999,
-                  background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
-                  color: "#fff", fontFamily: "'Syne', sans-serif",
-                  fontSize: "0.95rem", fontWeight: 600, textDecoration: "none",
-                }}>
-                Start Building →
-              </Link>
+              {isAuth ? (
+                /* ── Authenticated: show Start Building ── */
+                <Link href="/dashboard" className="cta-pill"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 10,
+                    padding: "14px 36px", borderRadius: 999,
+                    background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
+                    color: "#fff", fontFamily: "'Syne', sans-serif",
+                    fontSize: "0.95rem", fontWeight: 600, textDecoration: "none",
+                  }}>
+                  Start Building →
+                </Link>
+              ) : (
+                /* ── Not authenticated: connect options ── */
+                <div className="flex flex-col items-center gap-3">
+                  <ConnectWallet />
+                  <div className="flex items-center gap-3 w-64">
+                    <div className="flex-1 h-px bg-white/[0.07]" />
+                    <span style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(113,113,122,0.55)", letterSpacing: "0.14em" }}>OR</span>
+                    <div className="flex-1 h-px bg-white/[0.07]" />
+                  </div>
+                  <PrivySocialButton variant="hero" label="Continue with Google" />
+                  <p style={{ fontSize: 11, color: "rgba(113,113,122,0.45)", fontFamily: "ui-monospace,'SF Mono',monospace", marginTop: -4 }}>
+                    Gasless · powered by Starkzap
+                  </p>
+                </div>
+              )}
+
               <Link href="/demo"
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
@@ -169,6 +194,7 @@ export default function Home() {
                   fontSize: "0.88rem", fontWeight: 500,
                   textDecoration: "underline", textDecorationColor: "rgba(139,92,246,0.35)",
                   textUnderlineOffset: 4, transition: "color 0.2s",
+                  marginTop: isAuth ? 0 : 4,
                 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#c4b5fd"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(167,139,250,0.7)"; }}
@@ -432,8 +458,12 @@ export default function Home() {
               © 2026 StarkPayHub — Built for Starknet Hackathon
             </span>
             <div className="flex gap-8">
-              {["GitHub", "Docs", "Voyager"].map((l) => (
-                <a key={l} href="#"
+              {[
+                { label: "GitHub",  href: "https://github.com/starkpayhub/starkpayhub" },
+                { label: "Docs",    href: "https://github.com/starkpayhub/starkpayhub/blob/main/README.md" },
+                { label: "Voyager", href: "https://sepolia.voyager.online" },
+              ].map(({ label: l, href }) => (
+                <a key={l} href={href} target="_blank" rel="noopener noreferrer"
                   className="text-xs font-mono tracking-wider uppercase transition-colors"
                   style={{ color: "rgba(63,63,70,0.9)" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "rgba(167,139,250,0.7)"; }}
