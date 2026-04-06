@@ -75,15 +75,20 @@ export default function DemoPage() {
         <section className="py-6 px-6">
           <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-3">
             {[
-              { num: '1×', label: 'Transaction to subscribe', sub: 'Approve + subscribe in a single multicall' },
-              { num: '0 ETH', label: 'Required for gas', sub: 'AVNU Paymaster: pay everything in USDC' },
-              { num: '∞', label: 'Auto-renewals', sub: 'Keeper bot runs on-chain forever' },
+              { num: '1×',    label: 'Transaction to subscribe', sub: 'Approve + subscribe in a single multicall' },
+              { num: '0 ETH', label: 'Required for gas',         sub: 'AVNU Paymaster: pay everything in USDC'   },
+              { num: '∞',     label: 'Auto-renewals',            sub: 'Keeper bot runs on-chain forever'          },
             ].map((s) => (
               <div key={s.num} className="flex flex-col items-center text-center px-6 py-7 gap-2" style={glassCard}>
-                <span
-                  className="font-display font-extrabold"
-                  style={{ fontSize: '2rem', lineHeight: 1, color: '#a78bfa', textShadow: '0 0 32px rgba(167,139,250,0.4)' }}
-                >
+                <span style={{
+                  fontFamily: "ui-monospace, 'SF Mono', monospace",
+                  fontWeight: 700,
+                  fontSize: '2rem',
+                  lineHeight: 1,
+                  letterSpacing: '-0.02em',
+                  color: '#a78bfa',
+                  textShadow: '0 0 28px rgba(167,139,250,0.35)',
+                }}>
                   {s.num}
                 </span>
                 <p className="text-white font-semibold text-sm leading-snug">{s.label}</p>
