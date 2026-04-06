@@ -6,6 +6,7 @@ import { useStarkzap } from "@/components/StarkzapProvider";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { KpiSkeleton, TableRowSkeleton } from "@/components/Skeleton";
 import { Toast } from "@/components/Toast";
+import { SignOutModal } from "@/components/Navbar";
 import { STARKPAY_ADDRESS } from "@/lib/contracts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,10 +44,50 @@ const mockWithdrawals = [
   { id: 3, date: "Jan 31, 2026", amount: "$2,990", tx: "0x02c3…b5e1" },
 ];
 
+// ── KPI Card ───────────────────────────────────────────────────────────────────
+function KpiCard({ label, value, sub, subColor, orb }: {
+  label: string; value: string; sub?: string; subColor?: string;
+  orb: { color: string; accent: string };
+}) {
+  return (
+    <div style={{
+      position: "relative", overflow: "hidden", borderRadius: 18,
+      background: "rgba(12,9,28,0.85)",
+      border: "0.5px solid rgba(255,255,255,0.1)",
+      backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+      padding: "24px 24px 20px",
+      boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+    }}>
+      <div aria-hidden style={{
+        position: "absolute", width: 130, height: 130, borderRadius: "50%",
+        background: orb.color, filter: "blur(38px)", top: -35, right: -25, pointerEvents: "none",
+      }} />
+      <div aria-hidden style={{
+        position: "absolute", bottom: 0, left: 24, right: 24, height: "1px",
+        background: `linear-gradient(90deg, transparent, ${orb.accent}, transparent)`,
+      }} />
+      <p style={{
+        fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace",
+        color: "rgba(161,161,170,0.5)", letterSpacing: "0.1em", textTransform: "uppercase",
+        marginBottom: 12, position: "relative",
+      }}>{label}</p>
+      <p style={{ fontSize: "2.5rem", fontWeight: 700, color: "#fff", lineHeight: 1, position: "relative" }}>{value}</p>
+      {sub && (
+        <p style={{
+          fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace",
+          color: subColor ?? "rgba(161,161,170,0.4)", marginTop: 10, position: "relative",
+        }}>{sub}</p>
+      )}
+    </div>
+  );
+}
+
 // ── Sidebar ────────────────────────────────────────────────────────────────────
 function Sidebar({ address, section, setSection }: { address?: string; section: Section; setSection: (s: Section) => void }) {
   const { disconnect } = useDisconnect();
+  const { privyAuthenticated, privyLogout } = useStarkzap();
   const router = useRouter();
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   const navItems: { label: string; key: Section; icon: React.ReactNode }[] = [
     { label: "Revenue",     key: "revenue",     icon: IcoRevenue     },
@@ -56,69 +97,159 @@ function Sidebar({ address, section, setSection }: { address?: string; section: 
   ];
 
   return (
-    <aside className="hidden md:flex flex-col w-60 min-h-screen border-r border-white/[0.06] bg-[#080610]/80 backdrop-blur-sm p-5 gap-1 sticky top-0 flex-shrink-0">
-      <Link href="/" className="flex items-center gap-2.5 px-1 pb-5 mb-1 border-b border-white/[0.06]">
+    <aside style={{
+      flexDirection: "column", width: 240, minHeight: "100vh",
+      borderRight: "0.5px solid rgba(255,255,255,0.08)",
+      background: "rgba(8,6,22,0.85)",
+      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+      padding: "20px 12px", gap: 2, position: "sticky", top: 0, flexShrink: 0,
+    }} className="hidden md:flex flex-col">
+
+      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 8px 20px", marginBottom: 4, borderBottom: "0.5px solid rgba(255,255,255,0.07)", textDecoration: "none" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo-sm.png" alt="StarkPayHub" width={32} height={32} style={{ objectFit: "contain" }} />
-        <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 14, color: "rgba(255,255,255,0.9)" }}>
+        <span style={{ fontWeight: 700, fontSize: 14, color: "rgba(255,255,255,0.9)" }}>
           StarkPayHub
         </span>
       </Link>
 
-      <p className="px-3 py-2 text-[10px] font-mono text-zinc-600 tracking-widest uppercase">Merchant</p>
+      <p style={{ padding: "8px 12px 6px", fontSize: 10, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.35)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+        Merchant
+      </p>
 
       {navItems.map((item) => {
         const active = section === item.key;
         return (
           <button key={item.key} onClick={() => setSection(item.key)}
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              active ? "bg-violet-500/10 text-white font-medium" : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]"
-            }`}>
-            <span className={active ? "text-violet-400" : "text-zinc-600"}>{item.icon}</span>
+            style={{
+              width: "100%", display: "flex", alignItems: "center", gap: 10,
+              padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer",
+              fontSize: 13.5, fontWeight: active ? 500 : 400, textAlign: "left",
+              background: active ? "rgba(124,58,237,0.12)" : "transparent",
+              color: active ? "#fff" : "rgba(161,161,170,0.55)",
+              borderLeft: active ? "2px solid rgba(139,92,246,0.7)" : "2px solid transparent",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={e => { if (!active) { e.currentTarget.style.color = "rgba(210,210,230,0.85)"; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; } }}
+            onMouseLeave={e => { if (!active) { e.currentTarget.style.color = "rgba(161,161,170,0.55)"; e.currentTarget.style.background = "transparent"; } }}
+          >
+            <span style={{ color: active ? "#a78bfa" : "rgba(161,161,170,0.3)", flexShrink: 0 }}>{item.icon}</span>
             {item.label}
           </button>
         );
       })}
 
-      <p className="px-3 pt-4 pb-2 text-[10px] font-mono text-zinc-600 tracking-widest uppercase border-t border-white/[0.06] mt-3">User</p>
+      <p style={{ padding: "16px 12px 6px", fontSize: 10, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.35)", letterSpacing: "0.12em", textTransform: "uppercase", borderTop: "0.5px solid rgba(255,255,255,0.07)", marginTop: 12 }}>
+        User
+      </p>
       <Link href="/dashboard"
-        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] transition-colors">
-        <span className="text-zinc-600">{IcoDash}</span>
+        style={{
+          display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10,
+          fontSize: 13.5, color: "rgba(161,161,170,0.55)", textDecoration: "none",
+          borderLeft: "2px solid transparent", transition: "all 0.15s",
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "rgba(210,210,230,0.85)"; (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(161,161,170,0.55)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+      >
+        <span style={{ color: "rgba(161,161,170,0.3)", flexShrink: 0 }}>{IcoDash}</span>
         My Subscriptions
       </Link>
 
       {address && (
-        <div className="mt-auto pt-4 border-t border-white/[0.06] space-y-2">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.04]">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" style={{ boxShadow: "0 0 6px rgba(52,211,153,0.8)" }} />
+        <div style={{ marginTop: "auto", paddingTop: 16, borderTop: "0.5px solid rgba(255,255,255,0.07)" }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10,
+            background: "rgba(255,255,255,0.03)", marginBottom: 4,
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#34d399", flexShrink: 0, boxShadow: "0 0 6px rgba(52,211,153,0.8)", display: "inline-block" }} />
             {address.startsWith("0x") ? (
-              <span className="font-mono text-xs text-zinc-400 truncate">{address.slice(0, 8)}…{address.slice(-4)}</span>
+              <span style={{ fontFamily: "ui-monospace,'SF Mono',monospace", fontSize: 11, color: "rgba(161,161,170,0.6)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {address.slice(0, 8)}…{address.slice(-4)}
+              </span>
             ) : (
-              <span className="text-xs text-zinc-400 truncate">{address}</span>
+              <span style={{ fontSize: 11, color: "rgba(161,161,170,0.6)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{address}</span>
             )}
           </div>
-          <button onClick={() => { disconnect(); router.push("/"); }}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-zinc-600 hover:text-red-400 hover:bg-red-500/5 transition-colors">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Disconnect
+          <button onClick={() => setConfirmSignOut(true)}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
+              borderRadius: 10, background: "none", border: "none", cursor: "pointer",
+              fontSize: 12, color: "rgba(161,161,170,0.35)", transition: "all 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = "rgba(248,113,113,0.85)"; e.currentTarget.style.background = "rgba(239,68,68,0.06)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "rgba(161,161,170,0.35)"; e.currentTarget.style.background = "none"; }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            {privyAuthenticated ? "Sign out" : "Disconnect"}
           </button>
         </div>
+      )}
+      {confirmSignOut && (
+        <SignOutModal
+          email={privyAuthenticated ? (address ?? null) : null}
+          onCancel={() => setConfirmSignOut(false)}
+          onConfirm={() => {
+            if (privyAuthenticated) { privyLogout?.(); }
+            else { disconnect(); }
+            setConfirmSignOut(false);
+            router.push("/");
+          }}
+        />
       )}
     </aside>
   );
 }
 
+// ── Glass container ────────────────────────────────────────────────────────────
+const glassCard: React.CSSProperties = {
+  background: "rgba(12,9,28,0.8)",
+  border: "0.5px solid rgba(255,255,255,0.09)",
+  backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+  borderRadius: 18, overflow: "hidden",
+};
+
+const tableHead: React.CSSProperties = {
+  borderBottom: "0.5px solid rgba(255,255,255,0.07)",
+};
+
+const tableRow: React.CSSProperties = {
+  borderBottom: "0.5px solid rgba(255,255,255,0.05)",
+};
+
 // ── Empty state ────────────────────────────────────────────────────────────────
 function EmptyState({ icon, title, desc, action }: { icon: React.ReactNode; title: string; desc: string; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-      <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">{icon}</div>
-      <div className="text-center">
-        <p className="text-sm font-medium text-zinc-300">{title}</p>
-        <p className="text-xs text-zinc-600 mt-1">{desc}</p>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "64px 24px", gap: 16 }}>
+      <div style={{
+        width: 48, height: 48, borderRadius: 14,
+        background: "rgba(109,40,217,0.1)", border: "0.5px solid rgba(139,92,246,0.2)",
+        display: "flex", alignItems: "center", justifyContent: "center", color: "#a78bfa",
+      }}>{icon}</div>
+      <div style={{ textAlign: "center" }}>
+        <p style={{ fontSize: 14, fontWeight: 500, color: "rgba(210,210,230,0.7)" }}>{title}</p>
+        <p style={{ fontSize: 12, color: "rgba(161,161,170,0.4)", marginTop: 4, fontFamily: "ui-monospace,'SF Mono',monospace" }}>{desc}</p>
       </div>
       {action}
     </div>
+  );
+}
+
+// ── Status pill ────────────────────────────────────────────────────────────────
+function StatusPill({ status }: { status: string }) {
+  const isActive = status === "Active";
+  const isDraft  = status === "Draft";
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5,
+      padding: "3px 10px", borderRadius: 999,
+      fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace",
+      background: isActive ? "rgba(52,211,153,0.08)" : isDraft ? "rgba(161,161,170,0.06)" : "rgba(239,68,68,0.08)",
+      border: `0.5px solid ${isActive ? "rgba(52,211,153,0.25)" : isDraft ? "rgba(161,161,170,0.2)" : "rgba(239,68,68,0.25)"}`,
+      color: isActive ? "#34d399" : isDraft ? "rgba(161,161,170,0.6)" : "#f87171",
+    }}>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
+      {status}
+    </span>
   );
 }
 
@@ -143,66 +274,73 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
     }
   }
 
+  const kpis = [
+    { label: "Monthly Revenue",    value: "$4,280",  sub: "↑ +12.4% vs last month", subColor: "#34d399", orb: { color: "radial-gradient(circle,rgba(52,211,153,0.35) 0%,transparent 70%)", accent: "rgba(52,211,153,0.3)" } },
+    { label: "Active Subscribers", value: "87",      sub: "↑ +6 this month",        subColor: "#34d399", orb: { color: "radial-gradient(circle,rgba(59,130,246,0.35) 0%,transparent 70%)", accent: "rgba(59,130,246,0.3)" } },
+    { label: "Total Revenue",      value: "$28,140", sub: "Lifetime earnings",       subColor: undefined, orb: { color: "radial-gradient(circle,rgba(139,92,246,0.3) 0%,transparent 70%)",  accent: "rgba(139,92,246,0.3)" } },
+    { label: "Transactions",       value: "312",     sub: "Auto-renewals processed", subColor: undefined, orb: { color: "radial-gradient(circle,rgba(251,191,36,0.25) 0%,transparent 70%)", accent: "rgba(251,191,36,0.25)" } },
+  ];
+
   return (
-    <div className="space-y-6 section-fade">
-      <div className="flex items-start justify-between gap-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Merchant Revenue</h1>
-          <p className="text-sm text-zinc-500 mt-1">Your subscription earnings on Starknet Sepolia</p>
+          <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>Merchant Revenue</h1>
+          <p style={{ fontSize: 13, color: "rgba(161,161,170,0.5)", marginTop: 6, fontFamily: "ui-monospace,'SF Mono',monospace" }}>
+            Your subscription earnings on Starknet Sepolia
+          </p>
         </div>
         {txHash ? (
           <a href={`https://sepolia.voyager.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
-            className="text-xs font-mono text-emerald-400 flex items-center gap-1 flex-shrink-0">
+            style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
             ✓ Withdrawn · View tx ↗
           </a>
         ) : (
           <button onClick={handleWithdraw} disabled={withdrawing || !account}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm transition-colors shadow-lg shadow-violet-500/20 disabled:opacity-50 flex-shrink-0">
+            style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12,
+              background: "#7c3aed", color: "#fff", fontWeight: 600, fontSize: 13.5,
+              border: "none", cursor: "pointer", flexShrink: 0,
+              boxShadow: "0 4px 20px rgba(124,58,237,0.3)", opacity: (withdrawing || !account) ? 0.5 : 1,
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "#7c3aed"; }}
+          >
             {IcoWithdraw}
             {withdrawing ? "Withdrawing…" : "Withdraw $4,280"}
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Monthly Revenue",    value: "$4,280",  sub: "↑ +12.4% vs last month",  subColor: "text-emerald-400" },
-          { label: "Active Subscribers", value: "87",      sub: "↑ +6 this month",          subColor: "text-emerald-400" },
-          { label: "Total Revenue",      value: "$28,140", sub: "Lifetime earnings",         subColor: "text-zinc-500"   },
-          { label: "Transactions",       value: "312",     sub: "Auto-renewals processed",   subColor: "text-zinc-500"   },
-        ].map((kpi) => (
-          <div key={kpi.label} className="p-5 rounded-xl bg-white/[0.04] border border-white/[0.06] space-y-2">
-            <p className="text-xs text-zinc-500">{kpi.label}</p>
-            <p className="text-3xl font-bold text-white">{kpi.value}</p>
-            <p className={`text-xs font-mono ${kpi.subColor}`}>{kpi.sub}</p>
-          </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {kpis.map((kpi) => (
+          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} sub={kpi.sub} subColor={kpi.subColor} orb={kpi.orb} />
         ))}
       </div>
 
-      <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
-        <div className="px-6 py-4 border-b border-white/[0.06]">
-          <h2 className="font-semibold text-white text-sm">Active Plans Summary</h2>
+      <div style={glassCard}>
+        <div style={{ padding: "16px 24px", borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(210,210,230,0.85)" }}>Active Plans Summary</p>
         </div>
         {mockPlans.filter(p => p.status === "Active").length === 0 ? (
-          <div className="px-6 py-12">
-            <EmptyState icon={IcoRevenue} title="No active plans yet" desc="Create a plan to start earning" />
-          </div>
+          <EmptyState icon={IcoRevenue} title="No active plans yet" desc="Create a plan to start earning" />
         ) : (
-          <table className="w-full">
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr className="border-b border-white/[0.04]">
+              <tr style={tableHead}>
                 {["Plan", "Price", "Subscribers", "Monthly Revenue"].map((h) => (
-                  <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
+                  <th key={h} style={{ padding: "12px 24px", textAlign: "left", fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {mockPlans.filter(p => p.status === "Active").map((plan) => (
-                <tr key={plan.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                  <td className="px-6 py-4 text-sm text-white">{plan.name}</td>
-                  <td className="px-6 py-4 text-sm font-mono text-zinc-400">{plan.price}</td>
-                  <td className="px-6 py-4 text-sm font-mono text-zinc-400">{plan.subs}</td>
-                  <td className="px-6 py-4 text-sm font-mono text-emerald-400">{plan.revenue}</td>
+                <tr key={plan.id} style={tableRow}>
+                  <td style={{ padding: "14px 24px", fontSize: 14, color: "#fff" }}>{plan.name}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.6)" }}>{plan.price}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.6)" }}>{plan.subs}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399" }}>{plan.revenue}</td>
                 </tr>
               ))}
             </tbody>
@@ -221,82 +359,115 @@ function SectionPlans() {
   const [price, setPrice] = useState("");
 
   return (
-    <div className="space-y-6 section-fade">
-      <div className="flex items-start justify-between gap-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">My Plans</h1>
-          <p className="text-sm text-zinc-500 mt-1">Create and manage your subscription plans</p>
+          <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>My Plans</h1>
+          <p style={{ fontSize: 13, color: "rgba(161,161,170,0.5)", marginTop: 6, fontFamily: "ui-monospace,'SF Mono',monospace" }}>
+            Create and manage your subscription plans
+          </p>
         </div>
         <button onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm transition-colors flex-shrink-0">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 12,
+            background: "#7c3aed", color: "#fff", fontWeight: 600, fontSize: 13.5,
+            border: "none", cursor: "pointer", flexShrink: 0, transition: "background 0.15s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "#7c3aed"; }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           New Plan
         </button>
       </div>
 
       {showForm && (
-        <div className="rounded-xl bg-white/[0.04] border border-violet-500/20 p-6 space-y-4">
-          <h2 className="font-semibold text-white text-sm">Create New Plan</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs text-zinc-500">Plan Name</label>
+        <div style={{
+          ...glassCard, padding: 24,
+          border: "0.5px solid rgba(139,92,246,0.25)",
+        }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(210,210,230,0.85)", marginBottom: 20 }}>Create New Plan</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.45)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Plan Name</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Pro Monthly"
-                className="w-full px-3 py-2.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500/50" />
+                style={{
+                  padding: "10px 14px", borderRadius: 10, fontSize: 13, color: "#fff",
+                  background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.12)",
+                  outline: "none", fontFamily: "inherit",
+                }}
+                onFocus={e => { e.currentTarget.style.border = "0.5px solid rgba(139,92,246,0.5)"; }}
+                onBlur={e => { e.currentTarget.style.border = "0.5px solid rgba(255,255,255,0.12)"; }}
+              />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-zinc-500">Price (USDC / month)</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.45)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Price (USDC / month)</label>
               <input value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. 49"
-                className="w-full px-3 py-2.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500/50" />
+                style={{
+                  padding: "10px 14px", borderRadius: 10, fontSize: 13, color: "#fff",
+                  background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.12)",
+                  outline: "none", fontFamily: "ui-monospace,'SF Mono',monospace",
+                }}
+                onFocus={e => { e.currentTarget.style.border = "0.5px solid rgba(139,92,246,0.5)"; }}
+                onBlur={e => { e.currentTarget.style.border = "0.5px solid rgba(255,255,255,0.12)"; }}
+              />
             </div>
           </div>
-          <div className="flex gap-3">
-            <button className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-colors">
+          <div style={{ display: "flex", gap: 10 }}>
+            <button style={{
+              padding: "9px 18px", borderRadius: 10, background: "#7c3aed", color: "#fff",
+              fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", transition: "background 0.15s",
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#7c3aed"; }}
+            >
               Create on-chain
             </button>
-            <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-lg border border-white/[0.08] text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
+            <button onClick={() => setShowForm(false)} style={{
+              padding: "9px 18px", borderRadius: 10, background: "transparent",
+              border: "0.5px solid rgba(255,255,255,0.12)", color: "rgba(161,161,170,0.55)",
+              fontSize: 13, cursor: "pointer", transition: "all 0.15s",
+            }}
+              onMouseEnter={e => { e.currentTarget.style.color = "rgba(210,210,230,0.85)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "rgba(161,161,170,0.55)"; }}
+            >
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
+      <div style={glassCard}>
         {mockPlans.length === 0 ? (
-          <div className="px-6 py-16">
-            <EmptyState
-              icon={IcoPlans}
-              title="No plans created yet"
-              desc="Click 'New Plan' above to create your first subscription plan"
-            />
-          </div>
+          <EmptyState icon={IcoPlans} title="No plans created yet" desc="Click 'New Plan' above to create your first subscription plan" />
         ) : (
-          <table className="w-full">
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr className="border-b border-white/[0.04]">
+              <tr style={tableHead}>
                 {["Plan Name", "Price", "Interval", "Subscribers", "Revenue", "Status", ""].map((h) => (
-                  <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
+                  <th key={h} style={{ padding: "12px 24px", textAlign: "left", fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {mockPlans.map((plan) => (
-                <tr key={plan.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                  <td className="px-6 py-4 text-sm text-white font-medium">{plan.name}</td>
-                  <td className="px-6 py-4 text-sm font-mono text-zinc-400">{plan.price}</td>
-                  <td className="px-6 py-4 text-sm text-zinc-400">{plan.interval}</td>
-                  <td className="px-6 py-4 text-sm font-mono text-zinc-400">{plan.subs}</td>
-                  <td className="px-6 py-4 text-sm font-mono text-emerald-400">{plan.revenue}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-mono ${
-                      plan.status === "Active"
-                        ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
-                        : "bg-zinc-500/10 border border-zinc-500/30 text-zinc-400"
-                    }`}>
-                      {plan.status}
-                    </span>
+                <tr key={plan.id} style={tableRow}>
+                  <td style={{ padding: "14px 24px", fontSize: 14, color: "#fff", fontWeight: 500 }}>{plan.name}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.6)" }}>{plan.price}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, color: "rgba(161,161,170,0.5)" }}>{plan.interval}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.6)" }}>{plan.subs}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399" }}>{plan.revenue}</td>
+                  <td style={{ padding: "14px 24px" }}>
+                    <StatusPill status={plan.status} />
                   </td>
-                  <td className="px-6 py-4">
-                    <button className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors">Edit</button>
+                  <td style={{ padding: "14px 24px" }}>
+                    <button style={{
+                      fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.3)",
+                      background: "none", border: "none", cursor: "pointer", transition: "color 0.15s",
+                    }}
+                      onMouseEnter={e => { e.currentTarget.style.color = "rgba(196,181,253,0.85)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = "rgba(161,161,170,0.3)"; }}
+                    >Edit</button>
                   </td>
                 </tr>
               ))}
@@ -310,58 +481,51 @@ function SectionPlans() {
 
 // ── Section: Subscribers ──────────────────────────────────────────────────────
 function SectionSubscribers() {
+  const subKpis = [
+    { label: "Total Subscribers", value: "87", orb: { color: "radial-gradient(circle,rgba(59,130,246,0.35) 0%,transparent 70%)", accent: "rgba(59,130,246,0.3)" } },
+    { label: "Active",            value: "85", orb: { color: "radial-gradient(circle,rgba(52,211,153,0.35) 0%,transparent 70%)", accent: "rgba(52,211,153,0.3)" } },
+    { label: "At Risk (Failed)",  value: "2",  orb: { color: "radial-gradient(circle,rgba(239,68,68,0.3)  0%,transparent 70%)", accent: "rgba(239,68,68,0.3)"  } },
+  ];
+
   return (
-    <div className="space-y-6 section-fade">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Subscribers</h1>
-        <p className="text-sm text-zinc-500 mt-1">All active and at-risk subscriptions</p>
+        <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>Subscribers</h1>
+        <p style={{ fontSize: 13, color: "rgba(161,161,170,0.5)", marginTop: 6, fontFamily: "ui-monospace,'SF Mono',monospace" }}>
+          All active and at-risk subscriptions
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: "Total Subscribers", value: "87"  },
-          { label: "Active",            value: "85"  },
-          { label: "At Risk (Failed)",  value: "2"   },
-        ].map((kpi) => (
-          <div key={kpi.label} className="p-5 rounded-xl bg-white/[0.04] border border-white/[0.06] space-y-1">
-            <p className="text-xs text-zinc-500">{kpi.label}</p>
-            <p className="text-3xl font-bold text-white">{kpi.value}</p>
-          </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+        {subKpis.map((kpi) => (
+          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} orb={kpi.orb} />
         ))}
       </div>
 
-      <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
-        <div className="px-6 py-4 border-b border-white/[0.06]">
-          <h2 className="font-semibold text-white text-sm">Subscriber List</h2>
+      <div style={glassCard}>
+        <div style={{ padding: "16px 24px", borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(210,210,230,0.85)" }}>Subscriber List</p>
         </div>
         {mockSubscribers.length === 0 ? (
-          <div className="px-6 py-16">
-            <EmptyState icon={IcoSubscribers} title="No subscribers yet" desc="Share your plan links to start getting subscribers" />
-          </div>
+          <EmptyState icon={IcoSubscribers} title="No subscribers yet" desc="Share your plan links to start getting subscribers" />
         ) : (
-          <table className="w-full">
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr className="border-b border-white/[0.04]">
+              <tr style={tableHead}>
                 {["Wallet", "Plan", "Since", "Next Renewal", "Status"].map((h) => (
-                  <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
+                  <th key={h} style={{ padding: "12px 24px", textAlign: "left", fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {mockSubscribers.map((sub) => (
-                <tr key={sub.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                  <td className="px-6 py-4 font-mono text-xs text-zinc-400">{sub.address}</td>
-                  <td className="px-6 py-4 text-sm text-white">{sub.plan}</td>
-                  <td className="px-6 py-4 text-xs text-zinc-500 font-mono">{sub.since}</td>
-                  <td className="px-6 py-4 text-xs text-zinc-400 font-mono">{sub.nextRenewal}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-mono ${
-                      sub.status === "Active"
-                        ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
-                        : "bg-red-500/10 border border-red-500/30 text-red-400"
-                    }`}>
-                      {sub.status === "Active" ? "● Active" : "✕ Failed"}
-                    </span>
+                <tr key={sub.id} style={tableRow}>
+                  <td style={{ padding: "14px 24px", fontFamily: "ui-monospace,'SF Mono',monospace", fontSize: 12, color: "rgba(161,161,170,0.55)" }}>{sub.address}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 14, color: "#fff" }}>{sub.plan}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)" }}>{sub.since}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.5)" }}>{sub.nextRenewal}</td>
+                  <td style={{ padding: "14px 24px" }}>
+                    <StatusPill status={sub.status} />
                   </td>
                 </tr>
               ))}
@@ -394,70 +558,89 @@ function SectionWithdrawals({ account }: { account: any }) {
     }
   }
 
+  const wdKpis = [
+    { label: "Available to Withdraw", value: "$4,280",  orb: { color: "radial-gradient(circle,rgba(52,211,153,0.35) 0%,transparent 70%)",  accent: "rgba(52,211,153,0.3)"  } },
+    { label: "Total Withdrawn",       value: "$10,390", orb: { color: "radial-gradient(circle,rgba(139,92,246,0.3)  0%,transparent 70%)",  accent: "rgba(139,92,246,0.3)"  } },
+    { label: "Last Withdrawal",       value: "Mar 31",  orb: { color: "radial-gradient(circle,rgba(59,130,246,0.3)  0%,transparent 70%)",  accent: "rgba(59,130,246,0.3)"  } },
+  ];
+
   return (
-    <div className="space-y-6 section-fade">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Withdrawals</h1>
-        <p className="text-sm text-zinc-500 mt-1">Withdraw your accumulated USDC balance</p>
+        <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>Withdrawals</h1>
+        <p style={{ fontSize: 13, color: "rgba(161,161,170,0.5)", marginTop: 6, fontFamily: "ui-monospace,'SF Mono',monospace" }}>
+          Withdraw your accumulated USDC balance
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: "Available to Withdraw", value: "$4,280"  },
-          { label: "Total Withdrawn",       value: "$10,390" },
-          { label: "Last Withdrawal",       value: "Mar 31"  },
-        ].map((kpi) => (
-          <div key={kpi.label} className="p-5 rounded-xl bg-white/[0.04] border border-white/[0.06] space-y-1">
-            <p className="text-xs text-zinc-500">{kpi.label}</p>
-            <p className="text-3xl font-bold text-white">{kpi.value}</p>
-          </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+        {wdKpis.map((kpi) => (
+          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} orb={kpi.orb} />
         ))}
       </div>
 
-      <div className="rounded-xl bg-white/[0.04] border border-violet-500/20 px-6 py-5 flex items-center justify-between gap-4">
+      {/* Withdraw action card */}
+      <div style={{
+        ...glassCard,
+        border: "0.5px solid rgba(139,92,246,0.2)",
+        padding: "20px 24px",
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+      }}>
         <div>
-          <p className="text-white font-medium">$4,280.00 USDC available</p>
-          <p className="text-xs text-zinc-500 mt-0.5">Funds are sent directly to your connected wallet</p>
+          <p style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>$4,280.00 USDC available</p>
+          <p style={{ fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", marginTop: 4 }}>
+            Funds are sent directly to your connected wallet
+          </p>
         </div>
         {txHash ? (
           <a href={`https://sepolia.voyager.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
-            className="text-xs font-mono text-emerald-400 flex items-center gap-1 flex-shrink-0">
+            style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
             ✓ Withdrawn · View tx ↗
           </a>
         ) : (
           <button onClick={handleWithdraw} disabled={withdrawing || !account}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm transition-colors shadow-lg shadow-violet-500/20 disabled:opacity-50 flex-shrink-0">
+            style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12,
+              background: "#7c3aed", color: "#fff", fontWeight: 600, fontSize: 13.5,
+              border: "none", cursor: "pointer", flexShrink: 0,
+              boxShadow: "0 4px 20px rgba(124,58,237,0.3)", opacity: (withdrawing || !account) ? 0.5 : 1,
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "#7c3aed"; }}
+          >
             {IcoWithdraw}
             {withdrawing ? "Withdrawing…" : "Withdraw All"}
           </button>
         )}
       </div>
 
-      <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
-        <div className="px-6 py-4 border-b border-white/[0.06]">
-          <h2 className="font-semibold text-white text-sm">Withdrawal History</h2>
+      <div style={glassCard}>
+        <div style={{ padding: "16px 24px", borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(210,210,230,0.85)" }}>Withdrawal History</p>
         </div>
         {mockWithdrawals.length === 0 ? (
-          <div className="px-6 py-16">
-            <EmptyState icon={IcoWithdraw} title="No withdrawals yet" desc="Your withdrawal history will appear here" />
-          </div>
+          <EmptyState icon={IcoWithdraw} title="No withdrawals yet" desc="Your withdrawal history will appear here" />
         ) : (
-          <table className="w-full">
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr className="border-b border-white/[0.04]">
+              <tr style={tableHead}>
                 {["Date", "Amount", "Tx Hash"].map((h) => (
-                  <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
+                  <th key={h} style={{ padding: "12px 24px", textAlign: "left", fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {mockWithdrawals.map((w) => (
-                <tr key={w.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                  <td className="px-6 py-4 text-xs text-zinc-400 font-mono">{w.date}</td>
-                  <td className="px-6 py-4 text-sm font-mono text-emerald-400">{w.amount}</td>
-                  <td className="px-6 py-4">
+                <tr key={w.id} style={tableRow}>
+                  <td style={{ padding: "14px 24px", fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.5)" }}>{w.date}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399" }}>{w.amount}</td>
+                  <td style={{ padding: "14px 24px" }}>
                     <a href={`https://sepolia.voyager.online/tx/${w.tx}`} target="_blank" rel="noopener noreferrer"
-                      className="font-mono text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                      style={{ fontFamily: "ui-monospace,'SF Mono',monospace", fontSize: 12, color: "#a78bfa", textDecoration: "none", transition: "color 0.15s" }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#c4b5fd"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#a78bfa"; }}
+                    >
                       {w.tx} ↗
                     </a>
                   </td>
@@ -476,19 +659,20 @@ function SectionWithdrawals({ account }: { account: any }) {
 function MerchantSkeleton() {
   return (
     <div className="min-h-screen flex" style={BG}>
-      <aside className="hidden md:flex flex-col w-60 min-h-screen border-r border-white/[0.06] bg-[#080610]/80 backdrop-blur-sm p-5 gap-1 sticky top-0 flex-shrink-0">
+      <aside className="hidden md:flex flex-col w-60 min-h-screen p-5 gap-1 sticky top-0 flex-shrink-0"
+        style={{ borderRight: "0.5px solid rgba(255,255,255,0.08)", background: "rgba(8,6,22,0.85)" }}>
         <div className="skeleton h-8 w-32 rounded-md mb-6" />
         <div className="skeleton h-4 w-16 rounded mb-3" />
         {[1,2,3,4].map(i => <div key={i} className="skeleton h-10 rounded-lg" />)}
       </aside>
       <main className="flex-1 p-8 space-y-6">
         <div className="flex items-center justify-between">
-          <div className="space-y-2"><div className="skeleton h-6 w-44 rounded-md" /><div className="skeleton h-4 w-64 rounded-md" /></div>
-          <div className="skeleton h-10 w-36 rounded-lg" />
+          <div className="space-y-2"><div className="skeleton h-7 w-44 rounded-md" /><div className="skeleton h-4 w-64 rounded-md" /></div>
+          <div className="skeleton h-10 w-36 rounded-xl" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4"><KpiSkeleton /><KpiSkeleton /><KpiSkeleton /><KpiSkeleton /></div>
-        <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/[0.06]"><div className="skeleton h-5 w-24 rounded-md" /></div>
+        <div style={{ ...glassCard }}>
+          <div style={{ padding: "16px 24px", borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}><div className="skeleton h-5 w-24 rounded-md" /></div>
           <table className="w-full"><tbody><TableRowSkeleton /><TableRowSkeleton /><TableRowSkeleton /></tbody></table>
         </div>
       </main>
@@ -502,18 +686,20 @@ function NotConnected() {
     <div className="min-h-screen flex items-center justify-center px-6" style={BG}>
       <div style={{ position: "absolute", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(109,40,217,0.12) 0%, transparent 70%)", filter: "blur(40px)", pointerEvents: "none" }} />
       <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 28, maxWidth: 400, textAlign: "center" }}>
-        <div style={{ width: 72, height: 72, borderRadius: 20, background: "rgba(109,40,217,0.12)", border: "1px solid rgba(139,92,246,0.25)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 40px rgba(109,40,217,0.15)" }}>
+        <div style={{ width: 72, height: 72, borderRadius: 20, background: "rgba(109,40,217,0.12)", border: "0.5px solid rgba(139,92,246,0.25)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 40px rgba(109,40,217,0.15)" }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.85)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
         </div>
         <div>
-          <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: "1.35rem", color: "#fff" }}>Connect your wallet</h2>
-          <p style={{ fontSize: "0.875rem", color: "rgba(161,161,170,0.6)", lineHeight: 1.6, marginTop: 8 }}>Sign in to access the merchant dashboard and manage your plans.</p>
+          <h2 style={{ fontWeight: 700, fontSize: "1.35rem", color: "#fff" }}>Connect your wallet</h2>
+          <p style={{ fontSize: "0.875rem", color: "rgba(161,161,170,0.6)", lineHeight: 1.6, marginTop: 8 }}>
+            Sign in to access the merchant dashboard and manage your plans.
+          </p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
           <ConnectWallet />
-          <Link href="/pricing" style={{ fontSize: "0.8rem", color: "rgba(139,92,246,0.6)", textDecoration: "none", fontFamily: "monospace", letterSpacing: "0.06em" }}
+          <Link href="/pricing" style={{ fontSize: "0.8rem", color: "rgba(139,92,246,0.6)", textDecoration: "none", fontFamily: "ui-monospace,'SF Mono',monospace", letterSpacing: "0.06em" }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#c4b5fd"; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(139,92,246,0.6)"; }}>
             View pricing plans →
@@ -539,7 +725,7 @@ export default function MerchantPage() {
   return (
     <div className="min-h-screen flex" style={BG}>
       <Sidebar address={displayId} section={section} setSection={setSection} />
-      <main className="flex-1 p-8 min-w-0">
+      <main style={{ flex: 1, padding: 32, minWidth: 0 }}>
         {section === "revenue"     && <SectionRevenue account={account} address={displayId} />}
         {section === "plans"       && <SectionPlans />}
         {section === "subscribers" && <SectionSubscribers />}

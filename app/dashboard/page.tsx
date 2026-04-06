@@ -7,6 +7,7 @@ import { ClaimUSDC } from "@/components/ClaimUSDC";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { KpiSkeleton, SubRowSkeleton } from "@/components/Skeleton";
 import { Toast } from "@/components/Toast";
+import { SignOutModal } from "@/components/Navbar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -37,10 +38,72 @@ const mockHistory = [
   { id: 6, date: "Jan 15, 2026", plan: "Starter Plan", amount: "$9.00",  status: "Success", tx: "0x06f6…e5b1" },
 ];
 
+// ── KPI Card with liquid orb ───────────────────────────────────────────────────
+function KpiCard({ label, value, orb }: { label: string; value: string; orb: { color: string; accent: string } }) {
+  return (
+    <div style={{
+      position: "relative",
+      overflow: "hidden",
+      borderRadius: 18,
+      background: "rgba(12,9,28,0.85)",
+      border: "0.5px solid rgba(255,255,255,0.1)",
+      backdropFilter: "blur(24px)",
+      WebkitBackdropFilter: "blur(24px)",
+      padding: "24px 24px 20px",
+      boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+    }}>
+      {/* Liquid orb */}
+      <div aria-hidden style={{
+        position: "absolute",
+        width: 140,
+        height: 140,
+        borderRadius: "50%",
+        background: orb.color,
+        filter: "blur(40px)",
+        top: -40,
+        right: -30,
+        pointerEvents: "none",
+      }} />
+      {/* Bottom accent line */}
+      <div aria-hidden style={{
+        position: "absolute",
+        bottom: 0,
+        left: 24,
+        right: 24,
+        height: "1px",
+        background: `linear-gradient(90deg, transparent, ${orb.accent}, transparent)`,
+      }} />
+
+      <p style={{
+        fontSize: 11,
+        fontFamily: "ui-monospace,'SF Mono',monospace",
+        color: "rgba(161,161,170,0.5)",
+        letterSpacing: "0.1em",
+        textTransform: "uppercase",
+        marginBottom: 12,
+        position: "relative",
+      }}>
+        {label}
+      </p>
+      <p style={{
+        fontSize: "2.5rem",
+        fontWeight: 700,
+        color: "#fff",
+        lineHeight: 1,
+        position: "relative",
+      }}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
 // ── Sidebar ────────────────────────────────────────────────────────────────────
 function Sidebar({ address, section, setSection }: { address?: string; section: Section; setSection: (s: Section) => void }) {
   const { disconnect } = useDisconnect();
+  const { privyAuthenticated, privyLogout } = useStarkzap();
   const router = useRouter();
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   const navItems: { label: string; key: Section; icon: React.ReactNode }[] = [
     { label: "My Subscriptions", key: "subscriptions", icon: IcoCard     },
@@ -49,53 +112,127 @@ function Sidebar({ address, section, setSection }: { address?: string; section: 
   ];
 
   return (
-    <aside className="hidden md:flex flex-col w-60 min-h-screen border-r border-white/[0.06] bg-[#080610]/80 backdrop-blur-sm p-5 gap-1 sticky top-0 flex-shrink-0">
-      <Link href="/" className="flex items-center gap-2.5 px-1 pb-5 mb-1 border-b border-white/[0.06]">
+    <aside style={{
+      width: 240,
+      minHeight: "100vh",
+      borderRight: "0.5px solid rgba(255,255,255,0.07)",
+      background: "rgba(6,4,18,0.9)",
+      backdropFilter: "blur(16px)",
+      WebkitBackdropFilter: "blur(16px)",
+      padding: "20px 12px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 2,
+      position: "sticky",
+      top: 0,
+      flexShrink: 0,
+    }} className="hidden md:flex">
+      {/* Logo */}
+      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 12px 20px", marginBottom: 4, borderBottom: "0.5px solid rgba(255,255,255,0.07)", textDecoration: "none" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-sm.png" alt="StarkPayHub" width={32} height={32} style={{ objectFit: "contain" }} />
-        <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 14, color: "rgba(255,255,255,0.9)" }}>
+        <img src="/logo-sm.png" alt="StarkPayHub" width={30} height={30} style={{ objectFit: "contain" }} />
+        <span style={{ fontWeight: 700, fontSize: 14, color: "rgba(255,255,255,0.9)" }}>
           StarkPayHub
         </span>
       </Link>
 
-      <p className="px-3 py-2 text-[10px] font-mono text-zinc-600 tracking-widest uppercase">User</p>
+      <p style={{ padding: "12px 14px 6px", fontSize: 10, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(113,113,122,0.5)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+        User
+      </p>
 
       {navItems.map((item) => {
         const active = section === item.key;
         return (
           <button key={item.key} onClick={() => setSection(item.key)}
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              active ? "bg-violet-500/10 text-white font-medium" : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]"
-            }`}>
-            <span className={active ? "text-violet-400" : "text-zinc-600"}>{item.icon}</span>
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "10px 14px",
+              borderRadius: 10,
+              background: active ? "rgba(124,58,237,0.12)" : "transparent",
+              border: "none",
+              borderLeft: active ? "2px solid rgba(139,92,246,0.7)" : "2px solid transparent",
+              color: active ? "#fff" : "rgba(113,113,122,0.8)",
+              fontSize: 13.5,
+              
+              fontWeight: active ? 600 : 400,
+              cursor: "pointer",
+              transition: "all 0.15s",
+              textAlign: "left",
+            }}
+            onMouseEnter={e => { if (!active) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; } }}
+            onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(113,113,122,0.8)"; } }}
+          >
+            <span style={{ color: active ? "rgba(167,139,250,0.9)" : "rgba(113,113,122,0.6)", flexShrink: 0 }}>{item.icon}</span>
             {item.label}
           </button>
         );
       })}
 
-      <p className="px-3 pt-4 pb-2 text-[10px] font-mono text-zinc-600 tracking-widest uppercase border-t border-white/[0.06] mt-3">Merchant</p>
+      <p style={{ padding: "16px 14px 6px", fontSize: 10, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(113,113,122,0.5)", letterSpacing: "0.12em", textTransform: "uppercase", borderTop: "0.5px solid rgba(255,255,255,0.07)", marginTop: 8 }}>
+        Merchant
+      </p>
       <Link href="/merchant"
-        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] transition-colors">
-        <span className="text-zinc-600">{IcoMerchant}</span>
+        style={{
+          display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+          borderRadius: 10, textDecoration: "none", color: "rgba(113,113,122,0.8)", fontSize: 13.5,
+          borderLeft: "2px solid transparent", transition: "all 0.15s",
+        }}
+        onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "rgba(255,255,255,0.04)"; el.style.color = "rgba(255,255,255,0.7)"; }}
+        onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "rgba(113,113,122,0.8)"; }}
+      >
+        <span style={{ color: "rgba(113,113,122,0.6)", flexShrink: 0 }}>{IcoMerchant}</span>
         Revenue Dashboard
       </Link>
 
+      {/* User identity */}
       {address && (
-        <div className="mt-auto pt-4 border-t border-white/[0.06] space-y-2">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.04]">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" style={{ boxShadow: "0 0 6px rgba(52,211,153,0.8)" }} />
+        <div style={{ marginTop: "auto", paddingTop: 16, borderTop: "0.5px solid rgba(255,255,255,0.07)" }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "10px 14px",
+            borderRadius: 10, background: "rgba(255,255,255,0.03)",
+            border: "0.5px solid rgba(255,255,255,0.08)",
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#34d399", flexShrink: 0, boxShadow: "0 0 6px rgba(52,211,153,0.8)", display: "block" }} />
             {address.startsWith("0x") ? (
-              <span className="font-mono text-xs text-zinc-400 truncate">{address.slice(0, 8)}…{address.slice(-4)}</span>
+              <span style={{ fontFamily: "ui-monospace,'SF Mono',monospace", fontSize: 11.5, color: "rgba(161,161,170,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {address.slice(0, 8)}…{address.slice(-4)}
+              </span>
             ) : (
-              <span className="text-xs text-zinc-400 truncate">{address}</span>
+              <span style={{ fontSize: 11.5, color: "rgba(161,161,170,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {address}
+              </span>
             )}
           </div>
-          <button onClick={() => { disconnect(); router.push("/"); }}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-zinc-600 hover:text-red-400 hover:bg-red-500/5 transition-colors">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Disconnect
+          <button onClick={() => setConfirmSignOut(true)}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", gap: 8,
+              padding: "9px 14px", borderRadius: 10, background: "none", border: "none",
+              color: "rgba(113,113,122,0.5)", fontSize: 12, cursor: "pointer",
+              transition: "color 0.15s", textAlign: "left",
+              marginTop: 2,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.background = "rgba(239,68,68,0.05)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "rgba(113,113,122,0.5)"; e.currentTarget.style.background = "none"; }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            {privyAuthenticated ? "Sign out" : "Disconnect"}
           </button>
         </div>
+      )}
+      {confirmSignOut && (
+        <SignOutModal
+          email={privyAuthenticated ? (address ?? null) : null}
+          onCancel={() => setConfirmSignOut(false)}
+          onConfirm={() => {
+            if (privyAuthenticated) { privyLogout?.(); }
+            else { disconnect(); }
+            setConfirmSignOut(false);
+            router.push("/");
+          }}
+        />
       )}
     </aside>
   );
@@ -104,11 +241,22 @@ function Sidebar({ address, section, setSection }: { address?: string; section: 
 // ── Empty state ───────────────────────────────────────────────────────────────
 function EmptyState({ icon, title, desc, action }: { icon: React.ReactNode; title: string; desc: string; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-      <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">{icon}</div>
-      <div className="text-center">
-        <p className="text-sm font-medium text-zinc-300">{title}</p>
-        <p className="text-xs text-zinc-600 mt-1">{desc}</p>
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      padding: "72px 24px", gap: 16, borderRadius: 18,
+      background: "rgba(12,9,28,0.5)",
+      border: "0.5px solid rgba(255,255,255,0.07)",
+    }}>
+      <div style={{
+        width: 52, height: 52, borderRadius: 14,
+        background: "rgba(124,58,237,0.1)", border: "0.5px solid rgba(139,92,246,0.25)",
+        display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(167,139,250,0.7)",
+      }}>
+        {icon}
+      </div>
+      <div style={{ textAlign: "center" }}>
+        <p style={{ fontSize: 14, fontWeight: 500, color: "rgba(255,255,255,0.7)", marginBottom: 4 }}>{title}</p>
+        <p style={{ fontSize: 12.5, color: "rgba(113,113,122,0.6)" }}>{desc}</p>
       </div>
       {action}
     </div>
@@ -120,70 +268,96 @@ function SectionSubscriptions() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   function handleCancel(planName: string) {
-    // In production: call contract's cancel entrypoint here
     setToast({ message: `Cancellation requested for ${planName}`, type: "success" });
   }
 
   return (
-    <div className="space-y-6 section-fade">
-      <div className="flex items-start justify-between gap-4">
+    <div className="space-y-7 section-fade">
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">My Subscriptions</h1>
-          <p className="text-sm text-zinc-500 mt-1">Manage your active plans and billing</p>
+          <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>
+            My Subscriptions
+          </h1>
+          <p style={{ fontSize: 13.5, color: "rgba(113,113,122,0.7)", marginTop: 6 }}>Manage your active plans and billing</p>
         </div>
         <ClaimUSDC />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: "Active Plans",       value: "2"       },
-          { label: "Next Renewal",       value: "12 days" },
-          { label: "Total Spent (USDC)", value: "$126.00" },
-        ].map((kpi) => (
-          <div key={kpi.label} className="p-5 rounded-xl bg-white/[0.04] border border-white/[0.06] space-y-1">
-            <p className="text-xs text-zinc-500">{kpi.label}</p>
-            <p className="text-3xl font-bold text-white">{kpi.value}</p>
-          </div>
-        ))}
+      {/* KPI Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+        <KpiCard label="Active Plans"        value="2"        orb={{ color: "radial-gradient(circle, rgba(139,92,246,0.5) 0%, transparent 70%)",  accent: "rgba(139,92,246,0.35)" }} />
+        <KpiCard label="Next Renewal"        value="12 days"  orb={{ color: "radial-gradient(circle, rgba(59,130,246,0.45) 0%, transparent 70%)", accent: "rgba(59,130,246,0.3)"  }} />
+        <KpiCard label="Total Spent (USDC)"  value="$126"     orb={{ color: "radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)",  accent: "rgba(16,185,129,0.3)"  }} />
       </div>
 
+      {/* Subscriptions list */}
       {mockSubs.length === 0 ? (
         <EmptyState
           icon={IcoCard}
           title="No active subscriptions"
           desc="Subscribe to a plan to get started"
-          action={<Link href="/pricing" className="text-xs font-mono text-violet-400 hover:text-violet-300 transition-colors">Browse plans →</Link>}
+          action={<Link href="/pricing" style={{ fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(139,92,246,0.7)", textDecoration: "none" }}>Browse plans →</Link>}
         />
       ) : (
-        <div className="space-y-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {mockSubs.map((sub) => {
             const isActive = sub.variant === "emerald";
+            const accentColor = isActive ? "rgba(52,211,153,1)" : "rgba(251,191,36,0.9)";
+            const accentBg = isActive ? "rgba(52,211,153,0.08)" : "rgba(245,158,11,0.08)";
+            const accentBorder = isActive ? "rgba(52,211,153,0.2)" : "rgba(245,158,11,0.2)";
+            const iconBg = isActive ? "rgba(109,40,217,0.15)" : "rgba(217,119,6,0.15)";
+            const iconBorder = isActive ? "rgba(139,92,246,0.3)" : "rgba(245,158,11,0.3)";
+            const iconColor = isActive ? "rgba(167,139,250,1)" : "rgba(251,191,36,0.9)";
+
             return (
               <div key={sub.planId}
-                className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] transition-colors"
-                style={{ border: `1px solid ${isActive ? "rgba(52,211,153,0.15)" : "rgba(245,158,11,0.15)"}` }}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: isActive ? "rgba(109,40,217,0.18)" : "rgba(217,119,6,0.18)",
-                    border: `1px solid ${isActive ? "rgba(139,92,246,0.3)" : "rgba(245,158,11,0.3)"}`,
-                    color: isActive ? "rgba(167,139,250,1)" : "rgba(251,191,36,0.9)",
-                  }}>
+                style={{
+                  display: "flex", alignItems: "center", gap: 16, padding: "18px 20px",
+                  borderRadius: 16,
+                  background: "rgba(12,9,28,0.7)",
+                  border: `0.5px solid ${isActive ? "rgba(52,211,153,0.15)" : "rgba(245,158,11,0.15)"}`,
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  transition: "background 0.2s",
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(20,14,42,0.85)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(12,9,28,0.7)"; }}
+              >
+                {/* Icon */}
+                <div style={{
+                  width: 44, height: 44, borderRadius: 13, flexShrink: 0,
+                  background: iconBg, border: `1px solid ${iconBorder}`, color: iconColor,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
                   {isActive ? IcoBolt : IcoSparkles}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-white text-sm">{sub.name}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5 truncate">Renews {sub.renewsAt} · {sub.price}</p>
+
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontWeight: 600, fontSize: 14.5, color: "#fff" }}>{sub.name}</p>
+                  <p style={{ fontSize: 12, color: "rgba(113,113,122,0.7)", marginTop: 3 }}>Renews {sub.renewsAt} · {sub.price}</p>
                 </div>
-                <span className="px-3 py-1 rounded-full text-xs font-mono flex-shrink-0"
-                  style={{
-                    background: isActive ? "rgba(52,211,153,0.1)" : "rgba(245,158,11,0.1)",
-                    border: `1px solid ${isActive ? "rgba(52,211,153,0.3)" : "rgba(245,158,11,0.3)"}`,
-                    color: isActive ? "#34d399" : "#fbbf24",
-                  }}>
-                  ● {isActive ? "Active" : "Renewing"}
-                </span>
+
+                {/* Status dot */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: accentColor, boxShadow: `0 0 6px ${accentColor}`, display: "block" }} />
+                  <span style={{ fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace", color: accentColor }}>
+                    {isActive ? "Active" : "Renewing"}
+                  </span>
+                </div>
+
+                {/* Cancel */}
                 <button onClick={() => handleCancel(sub.name)}
-                  className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-xs text-zinc-500 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 transition-all flex-shrink-0">
+                  style={{
+                    padding: "7px 14px", borderRadius: 9, flexShrink: 0, cursor: "pointer",
+                    background: "transparent", border: "0.5px solid rgba(255,255,255,0.1)",
+                    color: "rgba(113,113,122,0.6)", fontSize: 12,
+                    transition: "all 0.15s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.35)"; e.currentTarget.style.background = "rgba(239,68,68,0.06)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = "rgba(113,113,122,0.6)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.background = "transparent"; }}
+                >
                   Cancel
                 </button>
               </div>
@@ -199,60 +373,76 @@ function SectionSubscriptions() {
 // ── Section: Payment History ──────────────────────────────────────────────────
 function SectionHistory() {
   return (
-    <div className="space-y-6 section-fade">
+    <div className="space-y-7 section-fade">
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Payment History</h1>
-        <p className="text-sm text-zinc-500 mt-1">All auto-renewal transactions on Starknet</p>
+        <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>
+          Payment History
+        </h1>
+        <p style={{ fontSize: 13.5, color: "rgba(113,113,122,0.7)", marginTop: 6 }}>All auto-renewal transactions on Starknet</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: "Total Payments",  value: "6"       },
-          { label: "Total Spent",     value: "$174.00" },
-          { label: "Success Rate",    value: "83%"     },
-        ].map((kpi) => (
-          <div key={kpi.label} className="p-5 rounded-xl bg-white/[0.04] border border-white/[0.06] space-y-1">
-            <p className="text-xs text-zinc-500">{kpi.label}</p>
-            <p className="text-3xl font-bold text-white">{kpi.value}</p>
-          </div>
-        ))}
+      {/* KPI Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+        <KpiCard label="Total Payments"  value="6"        orb={{ color: "radial-gradient(circle, rgba(139,92,246,0.5) 0%, transparent 70%)",  accent: "rgba(139,92,246,0.35)" }} />
+        <KpiCard label="Total Spent"     value="$174"     orb={{ color: "radial-gradient(circle, rgba(59,130,246,0.45) 0%, transparent 70%)", accent: "rgba(59,130,246,0.3)"  }} />
+        <KpiCard label="Success Rate"    value="83%"      orb={{ color: "radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)",  accent: "rgba(16,185,129,0.3)"  }} />
       </div>
 
-      <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
-        <div className="px-6 py-4 border-b border-white/[0.06]">
-          <h2 className="font-semibold text-white text-sm">Transactions</h2>
+      {/* Transaction table */}
+      <div style={{
+        borderRadius: 18,
+        background: "rgba(12,9,28,0.8)",
+        border: "0.5px solid rgba(255,255,255,0.09)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        overflow: "hidden",
+      }}>
+        <div style={{ padding: "18px 24px", borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}>
+          <h2 style={{ fontWeight: 600, fontSize: 15, color: "#fff" }}>Transactions</h2>
         </div>
+
         {mockHistory.length === 0 ? (
-          <div className="px-6 py-16">
+          <div style={{ padding: "0 24px 24px" }}>
             <EmptyState icon={IcoHistory} title="No transactions yet" desc="Your payment history will appear here after your first renewal" />
           </div>
         ) : (
-          <table className="w-full">
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr className="border-b border-white/[0.04]">
+              <tr style={{ borderBottom: "0.5px solid rgba(255,255,255,0.06)" }}>
                 {["Date", "Plan", "Amount", "Status", "Tx Hash"].map((h) => (
-                  <th key={h} className="px-6 py-3 text-left text-xs text-zinc-500 font-medium">{h}</th>
+                  <th key={h} style={{ padding: "10px 24px", textAlign: "left", fontSize: 10.5, color: "rgba(113,113,122,0.5)", fontFamily: "ui-monospace,'SF Mono',monospace", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {mockHistory.map((row) => (
-                <tr key={row.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                  <td className="px-6 py-4 text-xs text-zinc-400 font-mono">{row.date}</td>
-                  <td className="px-6 py-4 text-sm text-white">{row.plan}</td>
-                  <td className="px-6 py-4 text-sm font-mono text-zinc-300">{row.amount}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-mono ${
-                      row.status === "Success"
-                        ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
-                        : "bg-red-500/10 border border-red-500/30 text-red-400"
-                    }`}>
-                      {row.status === "Success" ? "● Success" : "✕ Failed"}
+              {mockHistory.map((row, i) => (
+                <tr key={row.id}
+                  style={{ borderBottom: i < mockHistory.length - 1 ? "0.5px solid rgba(255,255,255,0.05)" : "none", transition: "background 0.15s" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                >
+                  <td style={{ padding: "16px 24px", fontSize: 12, color: "rgba(113,113,122,0.7)", fontFamily: "ui-monospace,'SF Mono',monospace" }}>{row.date}</td>
+                  <td style={{ padding: "16px 24px", fontSize: 13.5, color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>{row.plan}</td>
+                  <td style={{ padding: "16px 24px", fontSize: 13, color: "rgba(255,255,255,0.75)", fontFamily: "ui-monospace,'SF Mono',monospace" }}>{row.amount}</td>
+                  <td style={{ padding: "16px 24px" }}>
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      padding: "4px 10px", borderRadius: 999, fontSize: 11.5,
+                      fontFamily: "ui-monospace,'SF Mono',monospace",
+                      background: row.status === "Success" ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)",
+                      border: `0.5px solid ${row.status === "Success" ? "rgba(52,211,153,0.3)" : "rgba(239,68,68,0.3)"}`,
+                      color: row.status === "Success" ? "#34d399" : "#f87171",
+                    }}>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor", display: "block", flexShrink: 0 }} />
+                      {row.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td style={{ padding: "16px 24px" }}>
                     <a href={`https://sepolia.voyager.online/tx/${row.tx}`} target="_blank" rel="noopener noreferrer"
-                      className="font-mono text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                      style={{ fontFamily: "ui-monospace,'SF Mono',monospace", fontSize: 12, color: "rgba(139,92,246,0.7)", textDecoration: "none", transition: "color 0.15s" }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#c4b5fd"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(139,92,246,0.7)"; }}
+                    >
                       {row.tx} ↗
                     </a>
                   </td>
@@ -266,75 +456,138 @@ function SectionHistory() {
   );
 }
 
+// ── Toggle ─────────────────────────────────────────────────────────────────────
+function Toggle({ on }: { on: boolean }) {
+  return (
+    <div style={{
+      width: 44, height: 26, borderRadius: 999,
+      background: on ? "#7c3aed" : "rgba(255,255,255,0.1)",
+      display: "flex", alignItems: "center",
+      padding: "0 3px",
+      transition: "background 0.2s",
+      cursor: "default",
+      flexShrink: 0,
+      boxShadow: on ? "0 0 12px rgba(124,58,237,0.4)" : "none",
+    }}>
+      <span style={{
+        width: 20, height: 20, borderRadius: "50%",
+        background: "#fff",
+        display: "block",
+        marginLeft: on ? "auto" : 0,
+        transition: "margin 0.2s",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+      }} />
+    </div>
+  );
+}
+
+// ── Settings row ───────────────────────────────────────────────────────────────
+function SettingsRow({ label, desc, right }: { label: string; desc: string; right: React.ReactNode }) {
+  return (
+    <div style={{ padding: "18px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+      <div>
+        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>{label}</p>
+        <p style={{ fontSize: 12, color: "rgba(113,113,122,0.6)", marginTop: 3 }}>{desc}</p>
+      </div>
+      {right}
+    </div>
+  );
+}
+
 // ── Section: Settings ─────────────────────────────────────────────────────────
 function SectionSettings({ address }: { address?: string }) {
   const { disconnect } = useDisconnect();
   const router = useRouter();
 
+  const glassCard: React.CSSProperties = {
+    borderRadius: 18,
+    background: "rgba(12,9,28,0.8)",
+    border: "0.5px solid rgba(255,255,255,0.09)",
+    backdropFilter: "blur(24px)",
+    WebkitBackdropFilter: "blur(24px)",
+    overflow: "hidden",
+  };
+
+  const divider: React.CSSProperties = {
+    height: "0.5px",
+    background: "rgba(255,255,255,0.07)",
+  };
+
   return (
-    <div className="space-y-6 max-w-xl section-fade">
+    <div className="section-fade" style={{ maxWidth: 560, display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Settings</h1>
-        <p className="text-sm text-zinc-500 mt-1">Manage your account preferences</p>
+        <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>
+          Settings
+        </h1>
+        <p style={{ fontSize: 13.5, color: "rgba(113,113,122,0.7)", marginTop: 6 }}>Manage your account preferences</p>
       </div>
 
-      {/* Wallet info */}
-      <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] divide-y divide-white/[0.06]">
-        <div className="px-6 py-4">
-          <p className="text-xs text-zinc-500 mb-3 font-mono uppercase tracking-widest">Connected Wallet</p>
-          <div className="flex items-center gap-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(52,211,153,0.8)" }} />
-            <span className="font-mono text-sm text-zinc-200 break-all">{address}</span>
+      {/* Account card */}
+      <div style={glassCard}>
+        <div style={{ padding: "12px 24px 10px" }}>
+          <p style={{ fontSize: 10.5, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(113,113,122,0.5)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Account</p>
+        </div>
+        <div style={divider} />
+
+        <div style={{ padding: "18px 24px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#34d399", flexShrink: 0, boxShadow: "0 0 8px rgba(52,211,153,0.8)", display: "block" }} />
+            <span style={{ fontFamily: "ui-monospace,'SF Mono',monospace", fontSize: 13, color: "rgba(220,220,240,0.85)", wordBreak: "break-all" }}>{address}</span>
           </div>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-white">Network</p>
-            <p className="text-xs text-zinc-500 mt-0.5">Starknet Sepolia Testnet</p>
-          </div>
-          <span className="px-3 py-1 rounded-full text-xs font-mono bg-violet-500/10 border border-violet-500/30 text-violet-400">Testnet</span>
-        </div>
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-white">Auto-renewal</p>
-            <p className="text-xs text-zinc-500 mt-0.5">Subscriptions renew automatically each period</p>
-          </div>
-          <div className="w-10 h-6 rounded-full bg-violet-500 flex items-center px-1 cursor-default">
-            <span className="w-4 h-4 rounded-full bg-white ml-auto block" />
-          </div>
-        </div>
+        <div style={divider} />
+
+        <SettingsRow
+          label="Network"
+          desc="Starknet Sepolia Testnet"
+          right={
+            <span style={{ padding: "4px 12px", borderRadius: 999, fontSize: 11.5, fontFamily: "ui-monospace,'SF Mono',monospace", background: "rgba(124,58,237,0.1)", border: "0.5px solid rgba(139,92,246,0.3)", color: "rgba(196,181,253,0.85)" }}>
+              Testnet
+            </span>
+          }
+        />
+        <div style={divider} />
+        <SettingsRow label="Auto-renewal" desc="Subscriptions renew automatically each period" right={<Toggle on={true} />} />
       </div>
 
-      {/* Notifications */}
-      <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] divide-y divide-white/[0.06]">
-        <div className="px-6 py-4">
-          <p className="text-xs text-zinc-500 mb-1 font-mono uppercase tracking-widest">Notifications</p>
+      {/* Notifications card */}
+      <div style={glassCard}>
+        <div style={{ padding: "12px 24px 10px" }}>
+          <p style={{ fontSize: 10.5, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(113,113,122,0.5)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Notifications</p>
         </div>
         {[
           { label: "Renewal reminders", desc: "3 days before each renewal", on: true  },
           { label: "Payment failures",  desc: "Alert when a renewal fails",  on: true  },
           { label: "New features",      desc: "Protocol updates and news",   on: false },
-        ].map((item) => (
-          <div key={item.label} className="px-6 py-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm text-white">{item.label}</p>
-              <p className="text-xs text-zinc-500 mt-0.5">{item.desc}</p>
-            </div>
-            <div className={`w-10 h-6 rounded-full flex items-center px-1 cursor-default transition-colors ${item.on ? "bg-violet-500" : "bg-white/10"}`}>
-              <span className={`w-4 h-4 rounded-full bg-white block transition-transform ${item.on ? "ml-auto" : ""}`} />
-            </div>
+        ].map((item, i, arr) => (
+          <div key={item.label}>
+            <div style={divider} />
+            <SettingsRow label={item.label} desc={item.desc} right={<Toggle on={item.on} />} />
           </div>
         ))}
       </div>
 
       {/* Danger zone */}
-      <div className="rounded-xl bg-red-500/5 border border-red-500/20 px-6 py-5 flex items-center justify-between gap-4">
+      <div style={{
+        borderRadius: 18, padding: "20px 24px",
+        background: "rgba(239,68,68,0.04)",
+        border: "0.5px solid rgba(239,68,68,0.18)",
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+      }}>
         <div>
-          <p className="text-sm text-white font-medium">Disconnect wallet</p>
-          <p className="text-xs text-zinc-500 mt-0.5">You will be signed out and returned to the home page.</p>
+          <p style={{ fontSize: 14, fontWeight: 500, color: "rgba(255,255,255,0.85)" }}>Disconnect wallet</p>
+          <p style={{ fontSize: 12, color: "rgba(113,113,122,0.6)", marginTop: 3 }}>You will be signed out and returned to the home page.</p>
         </div>
         <button onClick={() => { disconnect(); router.push("/"); }}
-          className="px-4 py-2 rounded-lg text-xs font-medium text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors flex-shrink-0">
+          style={{
+            padding: "8px 18px", borderRadius: 10, flexShrink: 0, cursor: "pointer",
+            background: "transparent", border: "0.5px solid rgba(239,68,68,0.35)",
+            color: "#f87171", fontSize: 13,
+            fontWeight: 500, transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.1)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+        >
           Disconnect
         </button>
       </div>
@@ -376,7 +629,7 @@ function NotConnected() {
           </svg>
         </div>
         <div>
-          <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: "1.35rem", color: "#fff" }}>Connect your wallet</h2>
+          <h2 style={{ fontWeight: 700, fontSize: "1.35rem", color: "#fff" }}>Connect your wallet</h2>
           <p style={{ fontSize: "0.875rem", color: "rgba(161,161,170,0.6)", lineHeight: 1.6, marginTop: 8 }}>Sign in to view and manage your subscriptions.</p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
@@ -399,7 +652,6 @@ export default function DashboardPage() {
   const [section, setSection] = useState<Section>("subscriptions");
 
   const isAuth = status === "connected" || privyAuthenticated;
-  // Display identifier: prefer wallet address, fall back to Privy email
   const displayId = address ?? privyEmail ?? undefined;
 
   if (status === "reconnecting") return <DashboardSkeleton />;
@@ -408,7 +660,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen flex" style={BG}>
       <Sidebar address={displayId} section={section} setSection={setSection} />
-      <main className="flex-1 p-8 min-w-0">
+      <main style={{ flex: 1, padding: "40px 40px", minWidth: 0 }}>
         {section === "subscriptions" && <SectionSubscriptions />}
         {section === "history"       && <SectionHistory />}
         {section === "settings"      && <SectionSettings address={displayId} />}

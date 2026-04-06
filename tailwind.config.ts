@@ -10,7 +10,7 @@ const config: Config = {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
         mono: ["Geist Mono", "ui-monospace", "monospace"],
-        display: ["'Syne'", "sans-serif"],
+        display: ["Inter", "system-ui", "sans-serif"],
       },
       colors: {
         background: "#0a0a0a",
