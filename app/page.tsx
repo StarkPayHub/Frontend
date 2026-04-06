@@ -152,7 +152,7 @@ export default function Home() {
             </p>
 
             <div className="flex flex-col items-center gap-3 mt-2">
-              <Link href="/pricing" className="cta-pill"
+              <Link href="/dashboard" className="cta-pill"
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 10,
                   padding: "14px 36px", borderRadius: 999,

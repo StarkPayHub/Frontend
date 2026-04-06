@@ -9,6 +9,9 @@ interface SubscribeButtonProps {
   price: bigint;
   priceDisplay: string;
   className?: string;
+  /** Starkzap wallet from SocialLoginButton.onWalletReady — for gasless social login path */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  starkzapWallet?: any | null;
 }
 
 export function SubscribeButton({
@@ -16,28 +19,41 @@ export function SubscribeButton({
   price,
   priceDisplay,
   className = "",
+  starkzapWallet = null,
 }: SubscribeButtonProps) {
   const [loading, setLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const { account, status } = useAccount();
 
+  // The approve + subscribe multicall array (same for both wallet paths)
+  const calls = [
+    {
+      contractAddress: MOCK_USDC_ADDRESS,
+      entrypoint: "approve",
+      calldata: [STARKPAY_ADDRESS, price.toString(), "0"],
+    },
+    {
+      contractAddress: STARKPAY_ADDRESS,
+      entrypoint: "subscribe",
+      calldata: [planId.toString()],
+    },
+  ];
+
   async function handleSubscribe() {
-    if (!account) return;
     setLoading(true);
     try {
-      // Multicall: approve USDC + subscribe in 1 transaction
-      const result = await account.execute([
-        {
-          contractAddress: MOCK_USDC_ADDRESS,
-          entrypoint: "approve",
-          calldata: [STARKPAY_ADDRESS, price.toString(), "0"],
-        },
-        {
-          contractAddress: STARKPAY_ADDRESS,
-          entrypoint: "subscribe",
-          calldata: [planId.toString()],
-        },
-      ]);
+      let result: { transaction_hash: string };
+
+      if (starkzapWallet) {
+        // ── Starkzap path (social login, gasless) ──────────────────────────
+        result = await starkzapWallet.execute(calls, { feeMode: "sponsored" });
+      } else if (account) {
+        // ── starknet-react path (Argent X / Braavos) ───────────────────────
+        result = await account.execute(calls);
+      } else {
+        return;
+      }
+
       setTxHash(result.transaction_hash);
     } catch (err) {
       console.error("Subscribe failed:", err);
@@ -65,7 +81,7 @@ export function SubscribeButton({
     );
   }
 
-  const isConnected = status === "connected";
+  const isConnected = status === "connected" || starkzapWallet !== null;
 
   return (
     <button

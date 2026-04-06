@@ -2,6 +2,7 @@
 
 import { useAccount, useConnect, useDisconnect } from "@starknet-react/core";
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 /* ── Wallet brand colours & labels ── */
 const WALLET: Record<string, { bg: string; label: string; desc: string }> = {
@@ -89,9 +90,114 @@ export function ConnectWallet() {
     );
   }
 
+  /* ── Modal via Portal (escapes navbar backdropFilter stacking context) ── */
+  const modal = open ? createPortal(
+    <div
+      ref={overlayRef}
+      onClick={handleOverlay}
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{
+        zIndex: 9999,
+        background: "rgba(0,0,0,0.85)",
+        animation: "fadeIn 0.15s ease",
+      }}
+    >
+      <div
+        className="relative w-full max-w-[380px] rounded-3xl overflow-hidden"
+        style={{
+          background: "#0f0d1a",
+          border: "1px solid rgba(255,255,255,0.1)",
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.9)",
+          animation: "slideUp 0.2s cubic-bezier(.4,0,.2,1)",
+        }}
+      >
+        {/* Rainbow gradient top bar */}
+        <div className="h-1 w-full" style={{
+          background: "linear-gradient(90deg, #f97316, #eab308, #22c55e, #3b82f6, #8b5cf6, #ec4899)",
+        }} />
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-1">
+          <div>
+            <h2 className="text-white font-bold text-lg">Connect a wallet</h2>
+            <p className="text-zinc-500 text-sm mt-0.5">Choose your Starknet wallet to continue</p>
+          </div>
+          <button
+            onClick={() => setOpen(false)}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/10 transition-all"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Wallet options */}
+        <div className="px-4 py-4 space-y-2">
+          {connectors.map((connector) => {
+            const meta = walletMeta(connector.id);
+            const isLoading = connecting === connector.id;
+            return (
+              <button
+                key={connector.id}
+                onClick={() => handleConnect(connector)}
+                disabled={!!connecting}
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-150 group"
+                style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = "rgba(139,92,246,0.08)";
+                  e.currentTarget.style.border = "1px solid rgba(139,92,246,0.2)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                  e.currentTarget.style.border = "1px solid rgba(255,255,255,0.06)";
+                }}
+              >
+                <WalletAvatar id={connector.id} size={44} />
+                <div className="flex-1 text-left">
+                  <p className="text-white font-semibold text-[15px]">{meta.desc}</p>
+                  <p className="text-zinc-500 text-xs mt-0.5">Starknet browser wallet</p>
+                </div>
+                {isLoading ? (
+                  <div className="w-5 h-5 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                    className="text-zinc-600 group-hover:text-violet-400 transition-colors">
+                    <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-white/[0.05] text-center">
+          <p className="text-[12px] text-zinc-600 leading-relaxed">
+            New to Starknet?{" "}
+            <a
+              href="https://www.argent.xyz/argent-x"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-violet-400 hover:text-violet-300 transition-colors"
+            >
+              Get Argent X →
+            </a>
+          </p>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
+        @keyframes slideUp { from { opacity:0; transform:translateY(16px) scale(.97) }
+                             to   { opacity:1; transform:translateY(0)     scale(1)   } }
+      `}</style>
+    </div>,
+    document.body
+  ) : null;
+
   /* ── Not connected ── */
   return (
     <>
+      {modal}
       {/* Trigger button */}
       <button
         onClick={() => setOpen(true)}
@@ -128,107 +234,6 @@ export function ConnectWallet() {
         <span className="relative">Connect Wallet</span>
       </button>
 
-      {/* ── Wallet modal ── */}
-      {open && (
-        <div
-          ref={overlayRef}
-          onClick={handleOverlay}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-          style={{
-            background: "rgba(0,0,0,0.85)",
-            animation: "fadeIn 0.15s ease",
-          }}
-        >
-          <div
-            className="relative w-full max-w-[380px] rounded-3xl overflow-hidden"
-            style={{
-              background: "#0f0d1a",
-              border: "1px solid rgba(255,255,255,0.1)",
-              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.9)",
-              animation: "slideUp 0.2s cubic-bezier(.4,0,.2,1)",
-            }}
-          >
-            {/* Rainbow gradient top bar */}
-            <div className="h-1 w-full" style={{
-              background: "linear-gradient(90deg, #f97316, #eab308, #22c55e, #3b82f6, #8b5cf6, #ec4899)",
-            }} />
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 pt-5 pb-1">
-              <div>
-                <h2 className="text-white font-bold text-lg">Connect a wallet</h2>
-                <p className="text-zinc-500 text-sm mt-0.5">Choose your Starknet wallet to continue</p>
-              </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/10 transition-all"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Wallet options */}
-            <div className="px-4 py-4 space-y-2">
-              {connectors.map((connector) => {
-                const meta = walletMeta(connector.id);
-                const isLoading = connecting === connector.id;
-                return (
-                  <button
-                    key={connector.id}
-                    onClick={() => handleConnect(connector)}
-                    disabled={!!connecting}
-                    className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-150 group"
-                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = "rgba(139,92,246,0.08)";
-                      e.currentTarget.style.border = "1px solid rgba(139,92,246,0.2)";
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-                      e.currentTarget.style.border = "1px solid rgba(255,255,255,0.06)";
-                    }}
-                  >
-                    <WalletAvatar id={connector.id} size={44} />
-                    <div className="flex-1 text-left">
-                      <p className="text-white font-semibold text-[15px]">{meta.desc}</p>
-                      <p className="text-zinc-500 text-xs mt-0.5">Starknet browser wallet</p>
-                    </div>
-                    {isLoading ? (
-                      <div className="w-5 h-5 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
-                    ) : (
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
-                        className="text-zinc-600 group-hover:text-violet-400 transition-colors">
-                        <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                      </svg>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-white/[0.05] text-center">
-              <p className="text-[12px] text-zinc-600 leading-relaxed">
-                New to Starknet?{" "}
-                <a
-                  href="https://www.argent.xyz/argent-x"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-violet-400 hover:text-violet-300 transition-colors"
-                >
-                  Get Argent X →
-                </a>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
-        @keyframes slideUp { from { opacity:0; transform:translateY(16px) scale(.97) }
-                             to   { opacity:1; transform:translateY(0)     scale(1)   } }
-      `}</style>
     </>
   );
 }

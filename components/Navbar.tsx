@@ -5,12 +5,11 @@ import { usePathname } from "next/navigation";
 import { ConnectWallet } from "./ConnectWallet";
 import { useState, useEffect } from "react";
 
+// Dashboard & Merchant are app pages (sidebar nav) — not shown in marketing navbar
 const links = [
-  { href: "/",          label: "Home"      },
-  { href: "/pricing",   label: "Pricing"   },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/merchant",  label: "Merchant"  },
-  { href: "/demo",      label: "Demo"      },
+  { href: "/",        label: "Home"    },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/demo",    label: "Demo"    },
 ];
 
 export function Navbar() {

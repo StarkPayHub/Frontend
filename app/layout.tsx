@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { StarknetProvider } from "./starknet-provider";
+import { StarkzapProvider } from "@/components/StarkzapProvider";
 import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
@@ -17,9 +18,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <StarknetProvider>
-          <AppShell>{children}</AppShell>
-        </StarknetProvider>
+        {/* StarkzapProvider wraps PrivyProvider (social login) */}
+        <StarkzapProvider>
+          <StarknetProvider>
+            <AppShell>{children}</AppShell>
+          </StarknetProvider>
+        </StarkzapProvider>
       </body>
     </html>
   );

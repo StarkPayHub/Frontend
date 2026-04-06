@@ -135,6 +135,22 @@ body {
 }
 .feat-icon { transition: color 0.3s, background 0.3s, border-color 0.3s, box-shadow 0.3s; }
 
+/* ── Skeleton loading ── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.09) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* ── CTA pill glow ── */
 @keyframes glow-pulse {
   0%,100% { box-shadow: 0 0 32px rgba(124,58,237,0.45), 0 4px 16px rgba(0,0,0,0.4); }
