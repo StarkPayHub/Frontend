@@ -1,5 +1,5 @@
 export const STARKNET_RPC =
-  "https://starknet-sepolia.public.blastapi.io/rpc/v0_7";
+  "https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_8/demo";
 
 export const PLANS = [
   {
