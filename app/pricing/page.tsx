@@ -58,7 +58,7 @@ export default function PricingPage() {
             style={{ background: "rgba(109,40,217,0.12)", border: "1px solid rgba(109,40,217,0.25)" }}>
             Subscription Plans
           </p>
-          <h1 style={{ fontSize: "clamp(2rem,5vw,3.5rem)", fontFamily: "'Syne',sans-serif", fontWeight: 800, color: "#fff", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+          <h1 style={{ fontSize: "clamp(2rem,5vw,3.5rem)", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>
             Choose a plan for your SaaS
           </h1>
           <p className="text-zinc-500 max-w-md mx-auto">
@@ -165,12 +165,11 @@ export default function PricingPage() {
                           </p>
                           <div className="flex items-end gap-1.5">
                             <span style={{
-                              fontFamily: "'Syne',sans-serif",
                               fontSize: plan.price > 0n ? "3rem" : "2.25rem",
-                              fontWeight: 800,
+                              fontWeight: 700,
                               color: "#fff",
                               lineHeight: 1,
-                              letterSpacing: "-0.04em",
+                              letterSpacing: "-0.02em",
                             }}>
                               {plan.priceDisplay}
                             </span>

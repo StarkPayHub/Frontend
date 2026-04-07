@@ -166,7 +166,7 @@ export default function Home() {
                     display: "inline-flex", alignItems: "center", gap: 10,
                     padding: "14px 36px", borderRadius: 999,
                     background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
-                    color: "#fff", fontFamily: "'Syne', sans-serif",
+                    color: "#fff",
                     fontSize: "0.95rem", fontWeight: 600, textDecoration: "none",
                   }}>
                   Start Building →
@@ -190,7 +190,7 @@ export default function Home() {
               <Link href="/demo"
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
-                  color: "rgba(167,139,250,0.7)", fontFamily: "'Syne', sans-serif",
+                  color: "rgba(167,139,250,0.7)",
                   fontSize: "0.88rem", fontWeight: 500,
                   textDecoration: "underline", textDecorationColor: "rgba(139,92,246,0.35)",
                   textUnderlineOffset: 4, transition: "color 0.2s",
@@ -295,7 +295,7 @@ export default function Home() {
                   {/* step number badge — top right, large ghost */}
                   <div style={{
                     position: "absolute", top: 16, right: 20,
-                    fontFamily: "'Syne', sans-serif",
+                   
                     fontWeight: 800,
                     fontSize: "4.5rem",
                     lineHeight: 1,
@@ -353,7 +353,7 @@ export default function Home() {
                   )}
 
                   <h3 style={{
-                    fontFamily: "'Syne', sans-serif",
+                   
                     fontWeight: 700,
                     fontSize: 17,
                     textTransform: "uppercase",
@@ -409,7 +409,7 @@ export default function Home() {
                   display: "inline-flex", alignItems: "center", gap: 10,
                   padding: "15px 38px", borderRadius: 999,
                   background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
-                  color: "#fff", fontFamily: "'Syne', sans-serif",
+                  color: "#fff",
                   fontSize: "0.95rem", fontWeight: 600, textDecoration: "none",
                 }}>
                 Start with Contracts →
@@ -421,7 +421,7 @@ export default function Home() {
                   background: "transparent",
                   border: "1px solid rgba(139,92,246,0.25)",
                   color: "rgba(167,139,250,0.7)",
-                  fontFamily: "'Syne', sans-serif",
+                 
                   fontSize: "0.9rem", fontWeight: 500,
                   textDecoration: "none",
                   transition: "border-color 0.2s, color 0.2s, background 0.2s",
