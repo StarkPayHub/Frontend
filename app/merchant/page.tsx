@@ -2,12 +2,22 @@
 
 import { useState } from "react";
 import { useAccount, useDisconnect } from "@starknet-react/core";
+import { shortString } from "starknet";
 import { useStarkzap } from "@/components/StarkzapProvider";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { KpiSkeleton, TableRowSkeleton } from "@/components/Skeleton";
 import { Toast } from "@/components/Toast";
 import { SignOutModal } from "@/components/Navbar";
-import { STARKPAY_ADDRESS } from "@/lib/contracts";
+import { STARKPAY_ADDRESS, MOCK_USDC_ADDRESS } from "@/lib/contracts";
+import { useMerchantStats, usdcDisplay } from "@/hooks/useMerchantStats";
+import { usePlans, type OnChainPlan } from "@/hooks/usePlans";
+
+// Compare two Starknet addresses ignoring leading zeros and case
+function addrEq(a: string | undefined, b: string | undefined): boolean {
+  if (!a || !b) return false;
+  try { return BigInt(a) === BigInt(b); } catch { return false; }
+}
+import { useSubscriptionEvents, useWithdrawalEvents } from "@/hooks/useContractEvents";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -22,33 +32,13 @@ const IcoSubscribers = (<svg width="18" height="18" viewBox="0 0 24 24" fill="no
 const IcoWithdraw    = (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>);
 const IcoDash        = (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg>);
 
-// ── Mock data ──────────────────────────────────────────────────────────────────
-const mockPlans = [
-  { id: 1, name: "Pro Monthly",     price: "$49 USDC", interval: "Monthly", subs: 62, revenue: "$3,038", status: "Active"  },
-  { id: 2, name: "Starter Monthly", price: "$9 USDC",  interval: "Monthly", subs: 25, revenue: "$225",   status: "Active"  },
-  { id: 3, name: "Enterprise",      price: "$199 USDC",interval: "Monthly", subs: 0,  revenue: "$0",     status: "Draft"   },
-];
-
-const mockSubscribers = [
-  { id: 1, address: "0x04a1…f3c2", plan: "Pro Monthly",     since: "Jan 2026", nextRenewal: "Apr 30, 2026", status: "Active"  },
-  { id: 2, address: "0x07b2…a1d4", plan: "Starter Monthly", since: "Feb 2026", nextRenewal: "May 15, 2026", status: "Active"  },
-  { id: 3, address: "0x02c3…b5e1", plan: "Pro Monthly",     since: "Jan 2026", nextRenewal: "Apr 30, 2026", status: "Active"  },
-  { id: 4, address: "0x09d4…c2f3", plan: "Pro Monthly",     since: "Mar 2026", nextRenewal: "Apr 30, 2026", status: "Active"  },
-  { id: 5, address: "0x01e5…d4a2", plan: "Starter Monthly", since: "Mar 2026", nextRenewal: "May 15, 2026", status: "Failed"  },
-  { id: 6, address: "0x06f6…e5b1", plan: "Pro Monthly",     since: "Feb 2026", nextRenewal: "Apr 30, 2026", status: "Active"  },
-];
-
-const mockWithdrawals = [
-  { id: 1, date: "Mar 31, 2026", amount: "$3,860", tx: "0x04a1…f3c2" },
-  { id: 2, date: "Feb 28, 2026", amount: "$3,540", tx: "0x07b2…a1d4" },
-  { id: 3, date: "Jan 31, 2026", amount: "$2,990", tx: "0x02c3…b5e1" },
-];
-
 // ── KPI Card ───────────────────────────────────────────────────────────────────
-function KpiCard({ label, value, sub, subColor, orb }: {
+function KpiCard({ label, value, sub, subColor, orb, loading }: {
   label: string; value: string; sub?: string; subColor?: string;
   orb: { color: string; accent: string };
+  loading?: boolean;
 }) {
+  if (loading) return <KpiSkeleton />;
   return (
     <div style={{
       position: "relative", overflow: "hidden", borderRadius: 18,
@@ -208,13 +198,8 @@ const glassCard: React.CSSProperties = {
   borderRadius: 18, overflow: "hidden",
 };
 
-const tableHead: React.CSSProperties = {
-  borderBottom: "0.5px solid rgba(255,255,255,0.07)",
-};
-
-const tableRow: React.CSSProperties = {
-  borderBottom: "0.5px solid rgba(255,255,255,0.05)",
-};
+const tableHead: React.CSSProperties = { borderBottom: "0.5px solid rgba(255,255,255,0.07)" };
+const tableRow: React.CSSProperties  = { borderBottom: "0.5px solid rgba(255,255,255,0.05)" };
 
 // ── Empty state ────────────────────────────────────────────────────────────────
 function EmptyState({ icon, title, desc, action }: { icon: React.ReactNode; title: string; desc: string; action?: React.ReactNode }) {
@@ -259,6 +244,14 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
   const [txHash, setTxHash] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
+  const { totalRevenueDisplay, withdrawableDisplay, activeSubs, txCount, withdrawable, isLoading: statsLoading, refetch } = useMerchantStats();
+  const { plans, isLoading: plansLoading } = usePlans();
+
+  // Filter only plans belonging to the connected merchant
+  const myPlans = address
+    ? plans.filter(p => p.active && addrEq(p.merchant, address))
+    : plans.filter(p => p.active);
+
   async function handleWithdraw() {
     if (!account) return;
     setWithdrawing(true);
@@ -266,6 +259,7 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
       const result = await account.execute([{ contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }]);
       setTxHash(result.transaction_hash);
       setToast({ message: "Withdrawal submitted — funds on the way!", type: "success" });
+      setTimeout(() => refetch(), 3000);
     } catch (err) {
       console.error("Withdraw failed:", err);
       setToast({ message: "Withdrawal failed. Please try again.", type: "error" });
@@ -275,10 +269,10 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
   }
 
   const kpis = [
-    { label: "Monthly Revenue",    value: "$4,280",  sub: "↑ +12.4% vs last month", subColor: "#34d399", orb: { color: "radial-gradient(circle,rgba(52,211,153,0.35) 0%,transparent 70%)", accent: "rgba(52,211,153,0.3)" } },
-    { label: "Active Subscribers", value: "87",      sub: "↑ +6 this month",        subColor: "#34d399", orb: { color: "radial-gradient(circle,rgba(59,130,246,0.35) 0%,transparent 70%)", accent: "rgba(59,130,246,0.3)" } },
-    { label: "Total Revenue",      value: "$28,140", sub: "Lifetime earnings",       subColor: undefined, orb: { color: "radial-gradient(circle,rgba(139,92,246,0.3) 0%,transparent 70%)",  accent: "rgba(139,92,246,0.3)" } },
-    { label: "Transactions",       value: "312",     sub: "Auto-renewals processed", subColor: undefined, orb: { color: "radial-gradient(circle,rgba(251,191,36,0.25) 0%,transparent 70%)", accent: "rgba(251,191,36,0.25)" } },
+    { label: "Withdrawable",       value: withdrawableDisplay,  sub: "Available now",            subColor: "#34d399", orb: { color: "radial-gradient(circle,rgba(52,211,153,0.35) 0%,transparent 70%)",  accent: "rgba(52,211,153,0.3)"  } },
+    { label: "Active Subscribers", value: String(activeSubs),   sub: "On-chain right now",       subColor: "#34d399", orb: { color: "radial-gradient(circle,rgba(59,130,246,0.35) 0%,transparent 70%)",  accent: "rgba(59,130,246,0.3)"  } },
+    { label: "Total Revenue",      value: totalRevenueDisplay,  sub: "Lifetime earnings",        subColor: undefined, orb: { color: "radial-gradient(circle,rgba(139,92,246,0.3)  0%,transparent 70%)",  accent: "rgba(139,92,246,0.3)"  } },
+    { label: "Transactions",       value: String(txCount),      sub: "Auto-renewals processed",  subColor: undefined, orb: { color: "radial-gradient(circle,rgba(251,191,36,0.25) 0%,transparent 70%)",  accent: "rgba(251,191,36,0.25)" } },
   ];
 
   return (
@@ -296,26 +290,27 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
             ✓ Withdrawn · View tx ↗
           </a>
         ) : (
-          <button onClick={handleWithdraw} disabled={withdrawing || !account}
+          <button onClick={handleWithdraw} disabled={withdrawing || !account || withdrawable === 0n}
             style={{
               display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12,
               background: "#7c3aed", color: "#fff", fontWeight: 600, fontSize: 13.5,
               border: "none", cursor: "pointer", flexShrink: 0,
-              boxShadow: "0 4px 20px rgba(124,58,237,0.3)", opacity: (withdrawing || !account) ? 0.5 : 1,
+              boxShadow: "0 4px 20px rgba(124,58,237,0.3)",
+              opacity: (withdrawing || !account || withdrawable === 0n) ? 0.5 : 1,
               transition: "background 0.15s",
             }}
             onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "#7c3aed"; }}
           >
             {IcoWithdraw}
-            {withdrawing ? "Withdrawing…" : "Withdraw $4,280"}
+            {withdrawing ? "Withdrawing…" : `Withdraw ${withdrawableDisplay}`}
           </button>
         )}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         {kpis.map((kpi) => (
-          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} sub={kpi.sub} subColor={kpi.subColor} orb={kpi.orb} />
+          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} sub={kpi.sub} subColor={kpi.subColor} orb={kpi.orb} loading={statsLoading} />
         ))}
       </div>
 
@@ -323,24 +318,25 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
         <div style={{ padding: "16px 24px", borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(210,210,230,0.85)" }}>Active Plans Summary</p>
         </div>
-        {mockPlans.filter(p => p.status === "Active").length === 0 ? (
+        {plansLoading ? (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody><TableRowSkeleton /><TableRowSkeleton /></tbody></table>
+        ) : myPlans.length === 0 ? (
           <EmptyState icon={IcoRevenue} title="No active plans yet" desc="Create a plan to start earning" />
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={tableHead}>
-                {["Plan", "Price", "Subscribers", "Monthly Revenue"].map((h) => (
+                {["Plan", "Price / mo", "Interval"].map(h => (
                   <th key={h} style={{ padding: "12px 24px", textAlign: "left", fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {mockPlans.filter(p => p.status === "Active").map((plan) => (
+              {myPlans.map(plan => (
                 <tr key={plan.id} style={tableRow}>
-                  <td style={{ padding: "14px 24px", fontSize: 14, color: "#fff" }}>{plan.name}</td>
-                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.6)" }}>{plan.price}</td>
-                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.6)" }}>{plan.subs}</td>
-                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399" }}>{plan.revenue}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 14, color: "#fff" }}>{plan.name || `Plan #${plan.id}`}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399" }}>{usdcDisplay(plan.price)}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.6)" }}>{Math.round(plan.interval / 86400)}d</td>
                 </tr>
               ))}
             </tbody>
@@ -353,10 +349,47 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
 }
 
 // ── Section: My Plans ─────────────────────────────────────────────────────────
-function SectionPlans() {
+function SectionPlans({ account, address }: { account: any; address?: string }) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const { plans, isLoading } = usePlans();
+  const myPlans = address
+    ? plans.filter(p => addrEq(p.merchant, address))
+    : plans;
+
+  async function handleCreatePlan() {
+    if (!account || !name.trim() || !price) return;
+    setCreating(true);
+    try {
+      const nameFelt = shortString.encodeShortString(name.trim());
+      const priceUsdc = BigInt(Math.round(Number(price) * 1_000_000)); // 6 decimals
+      const interval = 2592000n; // 30 days
+
+      const result = await account.execute([{
+        contractAddress: STARKPAY_ADDRESS,
+        entrypoint: "create_plan",
+        calldata: [
+          nameFelt,
+          priceUsdc.toString(),    // u256 low
+          "0",                      // u256 high
+          interval.toString(),      // interval u64
+        ],
+      }]);
+      setToast({ message: `Plan "${name}" created! TX: ${result.transaction_hash.slice(0, 14)}…`, type: "success" });
+      setShowForm(false);
+      setName("");
+      setPrice("");
+    } catch (err: any) {
+      console.error("Create plan failed:", err);
+      setToast({ message: err?.message ?? "Failed to create plan", type: "error" });
+    } finally {
+      setCreating(false);
+    }
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -364,7 +397,7 @@ function SectionPlans() {
         <div>
           <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>My Plans</h1>
           <p style={{ fontSize: 13, color: "rgba(161,161,170,0.5)", marginTop: 6, fontFamily: "ui-monospace,'SF Mono',monospace" }}>
-            Create and manage your subscription plans
+            Create and manage your subscription plans on-chain
           </p>
         </div>
         <button onClick={() => setShowForm(!showForm)}
@@ -382,46 +415,41 @@ function SectionPlans() {
       </div>
 
       {showForm && (
-        <div style={{
-          ...glassCard, padding: 24,
-          border: "0.5px solid rgba(139,92,246,0.25)",
-        }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(210,210,230,0.85)", marginBottom: 20 }}>Create New Plan</p>
+        <div style={{ ...glassCard, padding: 24, border: "0.5px solid rgba(139,92,246,0.25)" }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(210,210,230,0.85)", marginBottom: 20 }}>Create New Plan (on-chain)</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.45)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Plan Name</label>
+              <label style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.45)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Plan Name (max 31 chars)</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Pro Monthly"
-                style={{
-                  padding: "10px 14px", borderRadius: 10, fontSize: 13, color: "#fff",
-                  background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.12)",
-                  outline: "none", fontFamily: "inherit",
-                }}
+                maxLength={31}
+                style={{ padding: "10px 14px", borderRadius: 10, fontSize: 13, color: "#fff", background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.12)", outline: "none", fontFamily: "inherit" }}
                 onFocus={e => { e.currentTarget.style.border = "0.5px solid rgba(139,92,246,0.5)"; }}
                 onBlur={e => { e.currentTarget.style.border = "0.5px solid rgba(255,255,255,0.12)"; }}
               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.45)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Price (USDC / month)</label>
-              <input value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. 49"
-                style={{
-                  padding: "10px 14px", borderRadius: 10, fontSize: 13, color: "#fff",
-                  background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.12)",
-                  outline: "none", fontFamily: "ui-monospace,'SF Mono',monospace",
-                }}
+              <input value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. 49" type="number" min="0"
+                style={{ padding: "10px 14px", borderRadius: 10, fontSize: 13, color: "#fff", background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.12)", outline: "none", fontFamily: "ui-monospace,'SF Mono',monospace" }}
                 onFocus={e => { e.currentTarget.style.border = "0.5px solid rgba(139,92,246,0.5)"; }}
                 onBlur={e => { e.currentTarget.style.border = "0.5px solid rgba(255,255,255,0.12)"; }}
               />
             </div>
           </div>
+          <div style={{ fontSize: 11, color: "rgba(161,161,170,0.35)", fontFamily: "ui-monospace,'SF Mono',monospace", marginBottom: 16 }}>
+            Interval: 30 days · Network: Starknet Sepolia
+          </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button style={{
-              padding: "9px 18px", borderRadius: 10, background: "#7c3aed", color: "#fff",
-              fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", transition: "background 0.15s",
-            }}
+            <button onClick={handleCreatePlan} disabled={creating || !account || !name.trim() || !price}
+              style={{
+                padding: "9px 18px", borderRadius: 10, background: "#7c3aed", color: "#fff",
+                fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", transition: "background 0.15s",
+                opacity: (creating || !account || !name.trim() || !price) ? 0.5 : 1,
+              }}
               onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "#7c3aed"; }}
             >
-              Create on-chain
+              {creating ? "Creating…" : "Create on-chain"}
             </button>
             <button onClick={() => setShowForm(false)} style={{
               padding: "9px 18px", borderRadius: 10, background: "transparent",
@@ -438,36 +466,27 @@ function SectionPlans() {
       )}
 
       <div style={glassCard}>
-        {mockPlans.length === 0 ? (
+        {isLoading ? (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody><TableRowSkeleton /><TableRowSkeleton /></tbody></table>
+        ) : myPlans.length === 0 ? (
           <EmptyState icon={IcoPlans} title="No plans created yet" desc="Click 'New Plan' above to create your first subscription plan" />
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={tableHead}>
-                {["Plan Name", "Price", "Interval", "Subscribers", "Revenue", "Status", ""].map((h) => (
+                {["Plan Name", "Price", "Interval", "Status"].map(h => (
                   <th key={h} style={{ padding: "12px 24px", textAlign: "left", fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {mockPlans.map((plan) => (
+              {myPlans.map(plan => (
                 <tr key={plan.id} style={tableRow}>
-                  <td style={{ padding: "14px 24px", fontSize: 14, color: "#fff", fontWeight: 500 }}>{plan.name}</td>
-                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.6)" }}>{plan.price}</td>
-                  <td style={{ padding: "14px 24px", fontSize: 13, color: "rgba(161,161,170,0.5)" }}>{plan.interval}</td>
-                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.6)" }}>{plan.subs}</td>
-                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399" }}>{plan.revenue}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 14, color: "#fff", fontWeight: 500 }}>{plan.name || `Plan #${plan.id}`}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.6)" }}>{usdcDisplay(plan.price)} / mo</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, color: "rgba(161,161,170,0.5)" }}>{Math.round(plan.interval / 86400)} days</td>
                   <td style={{ padding: "14px 24px" }}>
-                    <StatusPill status={plan.status} />
-                  </td>
-                  <td style={{ padding: "14px 24px" }}>
-                    <button style={{
-                      fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.3)",
-                      background: "none", border: "none", cursor: "pointer", transition: "color 0.15s",
-                    }}
-                      onMouseEnter={e => { e.currentTarget.style.color = "rgba(196,181,253,0.85)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = "rgba(161,161,170,0.3)"; }}
-                    >Edit</button>
+                    <StatusPill status={plan.active ? "Active" : "Inactive"} />
                   </td>
                 </tr>
               ))}
@@ -475,16 +494,49 @@ function SectionPlans() {
           </table>
         )}
       </div>
+      {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
     </div>
   );
 }
 
 // ── Section: Subscribers ──────────────────────────────────────────────────────
-function SectionSubscribers() {
+function SectionSubscribers({ address }: { address?: string }) {
+  const { events, isLoading } = useSubscriptionEvents();
+  const { plans } = usePlans();
+  const { activeSubs } = useMerchantStats();
+
+  // Only events for plans owned by this merchant
+  const myPlanIds = new Set(
+    address
+      ? plans.filter(p => addrEq(p.merchant, address)).map(p => p.id)
+      : plans.map(p => p.id)
+  );
+
+  const myEvents = events.filter(e => myPlanIds.has(e.planId));
+
+  // Deduplicate: keep latest event per user+plan
+  const latestByKey = new Map<string, typeof events[0]>();
+  for (const e of myEvents) {
+    const key = `${e.user}:${e.planId}`;
+    if (!latestByKey.has(key) || e.blockNumber > (latestByKey.get(key)?.blockNumber ?? 0)) {
+      latestByKey.set(key, e);
+    }
+  }
+  const subscribers = Array.from(latestByKey.values());
+
+  function getPlanName(planId: number) {
+    return plans.find(p => p.id === planId)?.name || `Plan #${planId}`;
+  }
+
+  function formatPeriodEnd(ts: number) {
+    if (!ts) return "—";
+    return new Date(ts * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+
   const subKpis = [
-    { label: "Total Subscribers", value: "87", orb: { color: "radial-gradient(circle,rgba(59,130,246,0.35) 0%,transparent 70%)", accent: "rgba(59,130,246,0.3)" } },
-    { label: "Active",            value: "85", orb: { color: "radial-gradient(circle,rgba(52,211,153,0.35) 0%,transparent 70%)", accent: "rgba(52,211,153,0.3)" } },
-    { label: "At Risk (Failed)",  value: "2",  orb: { color: "radial-gradient(circle,rgba(239,68,68,0.3)  0%,transparent 70%)", accent: "rgba(239,68,68,0.3)"  } },
+    { label: "Active Subscribers", value: String(activeSubs), orb: { color: "radial-gradient(circle,rgba(59,130,246,0.35) 0%,transparent 70%)", accent: "rgba(59,130,246,0.3)" } },
+    { label: "Unique Wallets",     value: String(new Set(myEvents.map(e => e.user)).size), orb: { color: "radial-gradient(circle,rgba(52,211,153,0.35) 0%,transparent 70%)", accent: "rgba(52,211,153,0.3)" } },
+    { label: "Total Events",       value: String(myEvents.length), orb: { color: "radial-gradient(circle,rgba(139,92,246,0.3) 0%,transparent 70%)", accent: "rgba(139,92,246,0.3)" } },
   ];
 
   return (
@@ -492,13 +544,13 @@ function SectionSubscribers() {
       <div>
         <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>Subscribers</h1>
         <p style={{ fontSize: 13, color: "rgba(161,161,170,0.5)", marginTop: 6, fontFamily: "ui-monospace,'SF Mono',monospace" }}>
-          All active and at-risk subscriptions
+          All subscriptions from on-chain events
         </p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
-        {subKpis.map((kpi) => (
-          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} orb={kpi.orb} />
+        {subKpis.map(kpi => (
+          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} orb={kpi.orb} loading={isLoading} />
         ))}
       </div>
 
@@ -506,26 +558,34 @@ function SectionSubscribers() {
         <div style={{ padding: "16px 24px", borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(210,210,230,0.85)" }}>Subscriber List</p>
         </div>
-        {mockSubscribers.length === 0 ? (
-          <EmptyState icon={IcoSubscribers} title="No subscribers yet" desc="Share your plan links to start getting subscribers" />
+        {isLoading ? (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody><TableRowSkeleton /><TableRowSkeleton /></tbody></table>
+        ) : subscribers.length === 0 ? (
+          <EmptyState icon={IcoSubscribers} title="No subscribers yet" desc="SubscriptionCreated events will appear here" />
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={tableHead}>
-                {["Wallet", "Plan", "Since", "Next Renewal", "Status"].map((h) => (
+                {["Wallet", "Plan", "Renews Until", "Tx"].map(h => (
                   <th key={h} style={{ padding: "12px 24px", textAlign: "left", fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {mockSubscribers.map((sub) => (
-                <tr key={sub.id} style={tableRow}>
-                  <td style={{ padding: "14px 24px", fontFamily: "ui-monospace,'SF Mono',monospace", fontSize: 12, color: "rgba(161,161,170,0.55)" }}>{sub.address}</td>
-                  <td style={{ padding: "14px 24px", fontSize: 14, color: "#fff" }}>{sub.plan}</td>
-                  <td style={{ padding: "14px 24px", fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)" }}>{sub.since}</td>
-                  <td style={{ padding: "14px 24px", fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.5)" }}>{sub.nextRenewal}</td>
+              {subscribers.map(sub => (
+                <tr key={`${sub.user}:${sub.planId}`} style={tableRow}>
+                  <td style={{ padding: "14px 24px", fontFamily: "ui-monospace,'SF Mono',monospace", fontSize: 12, color: "rgba(161,161,170,0.55)" }}>
+                    {sub.user.slice(0, 8)}…{sub.user.slice(-4)}
+                  </td>
+                  <td style={{ padding: "14px 24px", fontSize: 14, color: "#fff" }}>{getPlanName(sub.planId)}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.5)" }}>
+                    {formatPeriodEnd(sub.periodEnd)}
+                  </td>
                   <td style={{ padding: "14px 24px" }}>
-                    <StatusPill status={sub.status} />
+                    <a href={`https://sepolia.voyager.online/tx/${sub.txHash}`} target="_blank" rel="noopener noreferrer"
+                      style={{ fontFamily: "ui-monospace,'SF Mono',monospace", fontSize: 11, color: "#a78bfa", textDecoration: "none" }}>
+                      {sub.txHash.slice(0, 8)}…↗
+                    </a>
                   </td>
                 </tr>
               ))}
@@ -538,10 +598,15 @@ function SectionSubscribers() {
 }
 
 // ── Section: Withdrawals ──────────────────────────────────────────────────────
-function SectionWithdrawals({ account }: { account: any }) {
+function SectionWithdrawals({ account, address }: { account: any; address?: string }) {
   const [withdrawing, setWithdrawing] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const { withdrawable, withdrawableDisplay, totalRevenue, totalRevenueDisplay, isLoading: statsLoading, refetch } = useMerchantStats();
+  const { events: wdEvents, isLoading: eventsLoading } = useWithdrawalEvents(address);
+
+  const totalWithdrawn = totalRevenue - withdrawable;
 
   async function handleWithdraw() {
     if (!account) return;
@@ -550,6 +615,7 @@ function SectionWithdrawals({ account }: { account: any }) {
       const result = await account.execute([{ contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }]);
       setTxHash(result.transaction_hash);
       setToast({ message: "Withdrawal submitted — funds on the way!", type: "success" });
+      setTimeout(() => refetch(), 3000);
     } catch (err) {
       console.error("Withdraw failed:", err);
       setToast({ message: "Withdrawal failed. Please try again.", type: "error" });
@@ -559,9 +625,9 @@ function SectionWithdrawals({ account }: { account: any }) {
   }
 
   const wdKpis = [
-    { label: "Available to Withdraw", value: "$4,280",  orb: { color: "radial-gradient(circle,rgba(52,211,153,0.35) 0%,transparent 70%)",  accent: "rgba(52,211,153,0.3)"  } },
-    { label: "Total Withdrawn",       value: "$10,390", orb: { color: "radial-gradient(circle,rgba(139,92,246,0.3)  0%,transparent 70%)",  accent: "rgba(139,92,246,0.3)"  } },
-    { label: "Last Withdrawal",       value: "Mar 31",  orb: { color: "radial-gradient(circle,rgba(59,130,246,0.3)  0%,transparent 70%)",  accent: "rgba(59,130,246,0.3)"  } },
+    { label: "Available to Withdraw", value: withdrawableDisplay,          orb: { color: "radial-gradient(circle,rgba(52,211,153,0.35) 0%,transparent 70%)",  accent: "rgba(52,211,153,0.3)"  } },
+    { label: "Total Withdrawn",       value: usdcDisplay(totalWithdrawn),  orb: { color: "radial-gradient(circle,rgba(139,92,246,0.3)  0%,transparent 70%)",  accent: "rgba(139,92,246,0.3)"  } },
+    { label: "Lifetime Revenue",      value: totalRevenueDisplay,          orb: { color: "radial-gradient(circle,rgba(59,130,246,0.3)  0%,transparent 70%)",  accent: "rgba(59,130,246,0.3)"  } },
   ];
 
   return (
@@ -574,8 +640,8 @@ function SectionWithdrawals({ account }: { account: any }) {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
-        {wdKpis.map((kpi) => (
-          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} orb={kpi.orb} />
+        {wdKpis.map(kpi => (
+          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} orb={kpi.orb} loading={statsLoading} />
         ))}
       </div>
 
@@ -587,7 +653,7 @@ function SectionWithdrawals({ account }: { account: any }) {
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
       }}>
         <div>
-          <p style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>$4,280.00 USDC available</p>
+          <p style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>{withdrawableDisplay} USDC available</p>
           <p style={{ fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", marginTop: 4 }}>
             Funds are sent directly to your connected wallet
           </p>
@@ -598,12 +664,13 @@ function SectionWithdrawals({ account }: { account: any }) {
             ✓ Withdrawn · View tx ↗
           </a>
         ) : (
-          <button onClick={handleWithdraw} disabled={withdrawing || !account}
+          <button onClick={handleWithdraw} disabled={withdrawing || !account || withdrawable === 0n}
             style={{
               display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12,
               background: "#7c3aed", color: "#fff", fontWeight: 600, fontSize: 13.5,
               border: "none", cursor: "pointer", flexShrink: 0,
-              boxShadow: "0 4px 20px rgba(124,58,237,0.3)", opacity: (withdrawing || !account) ? 0.5 : 1,
+              boxShadow: "0 4px 20px rgba(124,58,237,0.3)",
+              opacity: (withdrawing || !account || withdrawable === 0n) ? 0.5 : 1,
               transition: "background 0.15s",
             }}
             onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; }}
@@ -619,29 +686,28 @@ function SectionWithdrawals({ account }: { account: any }) {
         <div style={{ padding: "16px 24px", borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(210,210,230,0.85)" }}>Withdrawal History</p>
         </div>
-        {mockWithdrawals.length === 0 ? (
+        {eventsLoading ? (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody><TableRowSkeleton /><TableRowSkeleton /></tbody></table>
+        ) : wdEvents.length === 0 ? (
           <EmptyState icon={IcoWithdraw} title="No withdrawals yet" desc="Your withdrawal history will appear here" />
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={tableHead}>
-                {["Date", "Amount", "Tx Hash"].map((h) => (
+                {["Block", "Amount", "Tx Hash"].map(h => (
                   <th key={h} style={{ padding: "12px 24px", textAlign: "left", fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {mockWithdrawals.map((w) => (
-                <tr key={w.id} style={tableRow}>
-                  <td style={{ padding: "14px 24px", fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.5)" }}>{w.date}</td>
-                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399" }}>{w.amount}</td>
+              {[...wdEvents].reverse().map((w, i) => (
+                <tr key={i} style={tableRow}>
+                  <td style={{ padding: "14px 24px", fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.5)" }}>#{w.blockNumber}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399" }}>{usdcDisplay(w.amount)}</td>
                   <td style={{ padding: "14px 24px" }}>
-                    <a href={`https://sepolia.voyager.online/tx/${w.tx}`} target="_blank" rel="noopener noreferrer"
-                      style={{ fontFamily: "ui-monospace,'SF Mono',monospace", fontSize: 12, color: "#a78bfa", textDecoration: "none", transition: "color 0.15s" }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#c4b5fd"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#a78bfa"; }}
-                    >
-                      {w.tx} ↗
+                    <a href={`https://sepolia.voyager.online/tx/${w.txHash}`} target="_blank" rel="noopener noreferrer"
+                      style={{ fontFamily: "ui-monospace,'SF Mono',monospace", fontSize: 12, color: "#a78bfa", textDecoration: "none" }}>
+                      {w.txHash.slice(0, 14)}…↗
                     </a>
                   </td>
                 </tr>
@@ -726,10 +792,10 @@ export default function MerchantPage() {
     <div className="min-h-screen flex" style={BG}>
       <Sidebar address={displayId} section={section} setSection={setSection} />
       <main style={{ flex: 1, padding: 32, minWidth: 0 }}>
-        {section === "revenue"     && <SectionRevenue account={account} address={displayId} />}
-        {section === "plans"       && <SectionPlans />}
-        {section === "subscribers" && <SectionSubscribers />}
-        {section === "withdrawals" && <SectionWithdrawals account={account} />}
+        {section === "revenue"     && <SectionRevenue account={account} address={address} />}
+        {section === "plans"       && <SectionPlans account={account} address={address} />}
+        {section === "subscribers" && <SectionSubscribers address={address} />}
+        {section === "withdrawals" && <SectionWithdrawals account={account} address={address} />}
       </main>
     </div>
   );

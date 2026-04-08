@@ -8,6 +8,10 @@ import { ConnectWallet } from "@/components/ConnectWallet";
 import { KpiSkeleton, SubRowSkeleton } from "@/components/Skeleton";
 import { Toast } from "@/components/Toast";
 import { SignOutModal } from "@/components/Navbar";
+import { STARKPAY_ADDRESS } from "@/lib/contracts";
+import { useMySubscriptions } from "@/hooks/useMySubscriptions";
+import { useSubscriptionEvents, useRenewalEvents } from "@/hooks/useContractEvents";
+import { usdcDisplay } from "@/hooks/useMerchantStats";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -23,20 +27,7 @@ const IcoBolt     = (<svg width="18" height="18" viewBox="0 0 24 24" fill="none"
 const IcoSparkles = (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456z"/></svg>);
 const IcoMerchant = (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/></svg>);
 
-// ── Mock data ──────────────────────────────────────────────────────────────────
-const mockSubs = [
-  { planId: 1, name: "Pro Plan",     price: "$49.00 / month", renewsAt: "Apr 30, 2026", variant: "emerald" },
-  { planId: 2, name: "Starter Plan", price: "$9.00 / month",  renewsAt: "May 15, 2026", variant: "amber"   },
-];
-
-const mockHistory = [
-  { id: 1, date: "Mar 30, 2026", plan: "Pro Plan",     amount: "$49.00", status: "Success", tx: "0x04a1…f3c2" },
-  { id: 2, date: "Mar 15, 2026", plan: "Starter Plan", amount: "$9.00",  status: "Success", tx: "0x07b2…a1d4" },
-  { id: 3, date: "Feb 28, 2026", plan: "Pro Plan",     amount: "$49.00", status: "Success", tx: "0x02c3…b5e1" },
-  { id: 4, date: "Feb 15, 2026", plan: "Starter Plan", amount: "$9.00",  status: "Success", tx: "0x09d4…c2f3" },
-  { id: 5, date: "Jan 30, 2026", plan: "Pro Plan",     amount: "$49.00", status: "Failed",  tx: "0x01e5…d4a2" },
-  { id: 6, date: "Jan 15, 2026", plan: "Starter Plan", amount: "$9.00",  status: "Success", tx: "0x06f6…e5b1" },
-];
+// (mock data removed — real on-chain data used via hooks)
 
 // ── KPI Card with liquid orb ───────────────────────────────────────────────────
 function KpiCard({ label, value, orb }: { label: string; value: string; orb: { color: string; accent: string } }) {
@@ -265,11 +256,42 @@ function EmptyState({ icon, title, desc, action }: { icon: React.ReactNode; titl
 
 // ── Section: My Subscriptions ─────────────────────────────────────────────────
 function SectionSubscriptions() {
+  const { account, address } = useAccount();
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [cancelling, setCancelling] = useState<number | null>(null);
+  const { subscriptions, isLoading, refetch } = useMySubscriptions();
 
-  function handleCancel(planName: string) {
-    setToast({ message: `Cancellation requested for ${planName}`, type: "success" });
+  async function handleCancel(planId: number, planName: string) {
+    if (!account) return;
+    setCancelling(planId);
+    try {
+      const result = await account.execute([{
+        contractAddress: STARKPAY_ADDRESS,
+        entrypoint: "cancel_subscription",
+        calldata: [planId.toString()],
+      }]);
+      setToast({ message: `${planName} cancelled · TX: ${result.transaction_hash.slice(0, 14)}…`, type: "success" });
+      setTimeout(() => refetch(), 3000);
+    } catch (err: any) {
+      setToast({ message: err?.message ?? "Cancellation failed", type: "error" });
+    } finally {
+      setCancelling(null);
+    }
   }
+
+  function formatRenewal(ts: number) {
+    if (!ts) return "—";
+    const d = new Date(ts * 1000);
+    const diff = Math.round((d.getTime() - Date.now()) / 86400000);
+    const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return diff > 0 ? `${label} (${diff}d)` : label;
+  }
+
+  const daysUntilNextRenewal = subscriptions.length > 0
+    ? Math.min(...subscriptions.map(s => Math.max(0, Math.round((s.currentPeriodEnd * 1000 - Date.now()) / 86400000))))
+    : null;
+
+  const totalSpent = subscriptions.reduce((sum, s) => sum + s.price, 0n);
 
   return (
     <div className="space-y-7 section-fade">
@@ -286,13 +308,15 @@ function SectionSubscriptions() {
 
       {/* KPI Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-        <KpiCard label="Active Plans"        value="2"        orb={{ color: "radial-gradient(circle, rgba(139,92,246,0.5) 0%, transparent 70%)",  accent: "rgba(139,92,246,0.35)" }} />
-        <KpiCard label="Next Renewal"        value="12 days"  orb={{ color: "radial-gradient(circle, rgba(59,130,246,0.45) 0%, transparent 70%)", accent: "rgba(59,130,246,0.3)"  }} />
-        <KpiCard label="Total Spent (USDC)"  value="$126"     orb={{ color: "radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)",  accent: "rgba(16,185,129,0.3)"  }} />
+        <KpiCard label="Active Plans"       value={isLoading ? "…" : String(subscriptions.length)}                          orb={{ color: "radial-gradient(circle, rgba(139,92,246,0.5) 0%, transparent 70%)",  accent: "rgba(139,92,246,0.35)" }} />
+        <KpiCard label="Next Renewal"       value={isLoading ? "…" : daysUntilNextRenewal != null ? `${daysUntilNextRenewal}d` : "—"} orb={{ color: "radial-gradient(circle, rgba(59,130,246,0.45) 0%, transparent 70%)", accent: "rgba(59,130,246,0.3)"  }} />
+        <KpiCard label="Monthly Spend"      value={isLoading ? "…" : usdcDisplay(totalSpent)}                               orb={{ color: "radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)",  accent: "rgba(16,185,129,0.3)"  }} />
       </div>
 
       {/* Subscriptions list */}
-      {mockSubs.length === 0 ? (
+      {isLoading ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}><SubRowSkeleton /><SubRowSkeleton /></div>
+      ) : subscriptions.length === 0 ? (
         <EmptyState
           icon={IcoCard}
           title="No active subscriptions"
@@ -301,11 +325,9 @@ function SectionSubscriptions() {
         />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {mockSubs.map((sub) => {
-            const isActive = sub.variant === "emerald";
+          {subscriptions.map((sub) => {
+            const isActive = !sub.isExpired;
             const accentColor = isActive ? "rgba(52,211,153,1)" : "rgba(251,191,36,0.9)";
-            const accentBg = isActive ? "rgba(52,211,153,0.08)" : "rgba(245,158,11,0.08)";
-            const accentBorder = isActive ? "rgba(52,211,153,0.2)" : "rgba(245,158,11,0.2)";
             const iconBg = isActive ? "rgba(109,40,217,0.15)" : "rgba(217,119,6,0.15)";
             const iconBorder = isActive ? "rgba(139,92,246,0.3)" : "rgba(245,158,11,0.3)";
             const iconColor = isActive ? "rgba(167,139,250,1)" : "rgba(251,191,36,0.9)";
@@ -317,8 +339,7 @@ function SectionSubscriptions() {
                   borderRadius: 16,
                   background: "rgba(12,9,28,0.7)",
                   border: `0.5px solid ${isActive ? "rgba(52,211,153,0.15)" : "rgba(245,158,11,0.15)"}`,
-                  backdropFilter: "blur(12px)",
-                  WebkitBackdropFilter: "blur(12px)",
+                  backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
                   transition: "background 0.2s",
                 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(20,14,42,0.85)"; }}
@@ -335,30 +356,34 @@ function SectionSubscriptions() {
 
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontWeight: 600, fontSize: 14.5, color: "#fff" }}>{sub.name}</p>
-                  <p style={{ fontSize: 12, color: "rgba(113,113,122,0.7)", marginTop: 3 }}>Renews {sub.renewsAt} · {sub.price}</p>
+                  <p style={{ fontWeight: 600, fontSize: 14.5, color: "#fff" }}>{sub.planName} Plan</p>
+                  <p style={{ fontSize: 12, color: "rgba(113,113,122,0.7)", marginTop: 3 }}>
+                    Renews {formatRenewal(sub.currentPeriodEnd)} · {sub.priceDisplay} / mo
+                  </p>
                 </div>
 
                 {/* Status dot */}
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: accentColor, boxShadow: `0 0 6px ${accentColor}`, display: "block" }} />
                   <span style={{ fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace", color: accentColor }}>
-                    {isActive ? "Active" : "Renewing"}
+                    {isActive ? "Active" : "Expired"}
                   </span>
                 </div>
 
                 {/* Cancel */}
-                <button onClick={() => handleCancel(sub.name)}
+                <button
+                  onClick={() => handleCancel(sub.planId, sub.planName)}
+                  disabled={cancelling === sub.planId || !account}
                   style={{
                     padding: "7px 14px", borderRadius: 9, flexShrink: 0, cursor: "pointer",
                     background: "transparent", border: "0.5px solid rgba(255,255,255,0.1)",
-                    color: "rgba(113,113,122,0.6)", fontSize: 12,
-                    transition: "all 0.15s",
+                    color: "rgba(113,113,122,0.6)", fontSize: 12, transition: "all 0.15s",
+                    opacity: cancelling === sub.planId ? 0.5 : 1,
                   }}
                   onMouseEnter={e => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.35)"; e.currentTarget.style.background = "rgba(239,68,68,0.06)"; }}
                   onMouseLeave={e => { e.currentTarget.style.color = "rgba(113,113,122,0.6)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.background = "transparent"; }}
                 >
-                  Cancel
+                  {cancelling === sub.planId ? "Cancelling…" : "Cancel"}
                 </button>
               </div>
             );
@@ -372,20 +397,44 @@ function SectionSubscriptions() {
 
 // ── Section: Payment History ──────────────────────────────────────────────────
 function SectionHistory() {
+  const { address } = useAccount();
+  const { events: subEvents, isLoading: subLoading } = useSubscriptionEvents();
+  const { events: renewalEvents, isLoading: renewLoading } = useRenewalEvents();
+
+  const isLoading = subLoading || renewLoading;
+
+  // Filter events for this user and combine them into a unified history
+  const addrNorm = address ? "0x" + BigInt(address).toString(16) : null;
+
+  const mySubEvents = addrNorm
+    ? subEvents.filter(e => "0x" + BigInt(e.user).toString(16) === addrNorm)
+    : [];
+  const myRenewalEvents = addrNorm
+    ? renewalEvents.filter(e => "0x" + BigInt(e.user).toString(16) === addrNorm)
+    : [];
+
+  type HistoryRow = { type: "sub" | "renewal"; planId: number; amount: bigint; txHash: string; blockNumber: number };
+  const history: HistoryRow[] = [
+    ...mySubEvents.map(e => ({ type: "sub" as const, planId: e.planId, amount: e.amount, txHash: e.txHash, blockNumber: e.blockNumber })),
+    ...myRenewalEvents.map(e => ({ type: "renewal" as const, planId: e.planId, amount: e.amount, txHash: e.txHash, blockNumber: e.blockNumber })),
+  ].sort((a, b) => b.blockNumber - a.blockNumber);
+
+  const totalSpent = history.reduce((sum, r) => sum + r.amount, 0n);
+
   return (
     <div className="space-y-7 section-fade">
       <div>
         <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>
           Payment History
         </h1>
-        <p style={{ fontSize: 13.5, color: "rgba(113,113,122,0.7)", marginTop: 6 }}>All auto-renewal transactions on Starknet</p>
+        <p style={{ fontSize: 13.5, color: "rgba(113,113,122,0.7)", marginTop: 6 }}>All on-chain payments for your subscriptions</p>
       </div>
 
       {/* KPI Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-        <KpiCard label="Total Payments"  value="6"        orb={{ color: "radial-gradient(circle, rgba(139,92,246,0.5) 0%, transparent 70%)",  accent: "rgba(139,92,246,0.35)" }} />
-        <KpiCard label="Total Spent"     value="$174"     orb={{ color: "radial-gradient(circle, rgba(59,130,246,0.45) 0%, transparent 70%)", accent: "rgba(59,130,246,0.3)"  }} />
-        <KpiCard label="Success Rate"    value="83%"      orb={{ color: "radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)",  accent: "rgba(16,185,129,0.3)"  }} />
+        <KpiCard label="Total Payments"  value={isLoading ? "…" : String(history.length)}      orb={{ color: "radial-gradient(circle, rgba(139,92,246,0.5) 0%, transparent 70%)",  accent: "rgba(139,92,246,0.35)" }} />
+        <KpiCard label="Total Spent"     value={isLoading ? "…" : usdcDisplay(totalSpent)}     orb={{ color: "radial-gradient(circle, rgba(59,130,246,0.45) 0%, transparent 70%)", accent: "rgba(59,130,246,0.3)"  }} />
+        <KpiCard label="Renewals"        value={isLoading ? "…" : String(myRenewalEvents.length)} orb={{ color: "radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)",  accent: "rgba(16,185,129,0.3)"  }} />
       </div>
 
       {/* Transaction table */}
@@ -393,57 +442,57 @@ function SectionHistory() {
         borderRadius: 18,
         background: "rgba(12,9,28,0.8)",
         border: "0.5px solid rgba(255,255,255,0.09)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
+        backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
         overflow: "hidden",
       }}>
         <div style={{ padding: "18px 24px", borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}>
           <h2 style={{ fontWeight: 600, fontSize: 15, color: "#fff" }}>Transactions</h2>
         </div>
 
-        {mockHistory.length === 0 ? (
+        {isLoading ? (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody><SubRowSkeleton /><SubRowSkeleton /></tbody></table>
+        ) : history.length === 0 ? (
           <div style={{ padding: "0 24px 24px" }}>
-            <EmptyState icon={IcoHistory} title="No transactions yet" desc="Your payment history will appear here after your first renewal" />
+            <EmptyState icon={IcoHistory} title="No transactions yet" desc="SubscriptionCreated and RenewalExecuted events will appear here" />
           </div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "0.5px solid rgba(255,255,255,0.06)" }}>
-                {["Date", "Plan", "Amount", "Status", "Tx Hash"].map((h) => (
+                {["Block", "Type", "Plan", "Amount", "Tx Hash"].map(h => (
                   <th key={h} style={{ padding: "10px 24px", textAlign: "left", fontSize: 10.5, color: "rgba(113,113,122,0.5)", fontFamily: "ui-monospace,'SF Mono',monospace", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {mockHistory.map((row, i) => (
-                <tr key={row.id}
-                  style={{ borderBottom: i < mockHistory.length - 1 ? "0.5px solid rgba(255,255,255,0.05)" : "none", transition: "background 0.15s" }}
+              {history.map((row, i) => (
+                <tr key={row.txHash + i}
+                  style={{ borderBottom: i < history.length - 1 ? "0.5px solid rgba(255,255,255,0.05)" : "none", transition: "background 0.15s" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                 >
-                  <td style={{ padding: "16px 24px", fontSize: 12, color: "rgba(113,113,122,0.7)", fontFamily: "ui-monospace,'SF Mono',monospace" }}>{row.date}</td>
-                  <td style={{ padding: "16px 24px", fontSize: 13.5, color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>{row.plan}</td>
-                  <td style={{ padding: "16px 24px", fontSize: 13, color: "rgba(255,255,255,0.75)", fontFamily: "ui-monospace,'SF Mono',monospace" }}>{row.amount}</td>
+                  <td style={{ padding: "16px 24px", fontSize: 12, color: "rgba(113,113,122,0.7)", fontFamily: "ui-monospace,'SF Mono',monospace" }}>#{row.blockNumber}</td>
                   <td style={{ padding: "16px 24px" }}>
                     <span style={{
                       display: "inline-flex", alignItems: "center", gap: 5,
                       padding: "4px 10px", borderRadius: 999, fontSize: 11.5,
                       fontFamily: "ui-monospace,'SF Mono',monospace",
-                      background: row.status === "Success" ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)",
-                      border: `0.5px solid ${row.status === "Success" ? "rgba(52,211,153,0.3)" : "rgba(239,68,68,0.3)"}`,
-                      color: row.status === "Success" ? "#34d399" : "#f87171",
+                      background: row.type === "sub" ? "rgba(139,92,246,0.08)" : "rgba(52,211,153,0.08)",
+                      border: `0.5px solid ${row.type === "sub" ? "rgba(139,92,246,0.3)" : "rgba(52,211,153,0.3)"}`,
+                      color: row.type === "sub" ? "#a78bfa" : "#34d399",
                     }}>
-                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor", display: "block", flexShrink: 0 }} />
-                      {row.status}
+                      {row.type === "sub" ? "Subscribe" : "Renewal"}
                     </span>
                   </td>
+                  <td style={{ padding: "16px 24px", fontSize: 13.5, color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>Plan #{row.planId}</td>
+                  <td style={{ padding: "16px 24px", fontSize: 13, color: "rgba(255,255,255,0.75)", fontFamily: "ui-monospace,'SF Mono',monospace" }}>{usdcDisplay(row.amount)}</td>
                   <td style={{ padding: "16px 24px" }}>
-                    <a href={`https://sepolia.voyager.online/tx/${row.tx}`} target="_blank" rel="noopener noreferrer"
+                    <a href={`https://sepolia.voyager.online/tx/${row.txHash}`} target="_blank" rel="noopener noreferrer"
                       style={{ fontFamily: "ui-monospace,'SF Mono',monospace", fontSize: 12, color: "rgba(139,92,246,0.7)", textDecoration: "none", transition: "color 0.15s" }}
                       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#c4b5fd"; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(139,92,246,0.7)"; }}
                     >
-                      {row.tx} ↗
+                      {row.txHash.slice(0, 14)}…↗
                     </a>
                   </td>
                 </tr>
