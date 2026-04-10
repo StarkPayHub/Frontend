@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@starkpay/sdk": "file:../packages/sdk",
     "@privy-io/react-auth": "^3.19.0",
     "@starknet-react/chains": "^3.0.0",
     "@starknet-react/core": "^3.7.4",

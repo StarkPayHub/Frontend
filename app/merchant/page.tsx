@@ -11,6 +11,8 @@ import { SignOutModal } from "@/components/Navbar";
 import { STARKPAY_ADDRESS, MOCK_USDC_ADDRESS } from "@/lib/contracts";
 import { useMerchantStats, usdcDisplay } from "@/hooks/useMerchantStats";
 import { usePlans, type OnChainPlan } from "@/hooks/usePlans";
+import { useReadContract } from "@starknet-react/core";
+import { starkpayAbi } from "@/lib/contracts";
 
 // Compare two Starknet addresses ignoring leading zeros and case
 function addrEq(a: string | undefined, b: string | undefined): boolean {
@@ -349,116 +351,184 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
 }
 
 // ── Section: My Plans ─────────────────────────────────────────────────────────
+const INTERVAL_OPTIONS = [
+  { label: "Harian",   value: 86400 },
+  { label: "Mingguan", value: 604800 },
+  { label: "Bulanan",  value: 2592000 },
+  { label: "Tahunan",  value: 31536000 },
+];
+
+// Local hook — baca tier langsung tanpa StarkPayProvider
+function useMerchantTier(address?: string) {
+  const { data: countData } = useReadContract({
+    address: STARKPAY_ADDRESS as `0x${string}`,
+    abi: starkpayAbi,
+    functionName: "get_merchant_plan_count",
+    args: address ? [address] : undefined,
+    enabled: !!address,
+    watch: true,
+  });
+  const { data: limitData } = useReadContract({
+    address: STARKPAY_ADDRESS as `0x${string}`,
+    abi: starkpayAbi,
+    functionName: "get_merchant_plan_limit",
+    args: address ? [address] : undefined,
+    enabled: !!address,
+    watch: true,
+  });
+  const planCount = countData !== undefined ? Number(countData) : 0;
+  const planLimit = limitData !== undefined ? Number(limitData) : 1;
+  const tier = planLimit <= 1 ? "free" : planLimit <= 3 ? "starter" : planLimit <= 10 ? "pro" : "enterprise";
+  return { planCount, planLimit, canCreatePlan: planCount < planLimit, tier };
+}
+
+const TIER_COLORS: Record<string, string> = {
+  free:       "rgba(161,161,170,0.15)",
+  starter:    "rgba(52,211,153,0.12)",
+  pro:        "rgba(124,58,237,0.15)",
+  enterprise: "rgba(251,191,36,0.12)",
+};
+const TIER_TEXT: Record<string, string> = {
+  free:       "#a1a1aa",
+  starter:    "#34d399",
+  pro:        "#a78bfa",
+  enterprise: "#fbbf24",
+};
+const TIER_LABEL: Record<string, string> = {
+  free:       "Free",
+  starter:    "Starter",
+  pro:        "Pro",
+  enterprise: "Enterprise",
+};
+
 function SectionPlans({ account, address }: { account: any; address?: string }) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [intervalSec, setIntervalSec] = useState(2592000);
   const [creating, setCreating] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const { plans, isLoading } = usePlans();
-  const myPlans = address
-    ? plans.filter(p => addrEq(p.merchant, address))
-    : plans;
+  const myPlans = address ? plans.filter(p => addrEq(p.merchant, address)) : plans;
+
+  const { planCount, planLimit, canCreatePlan, tier } = useMerchantTier(address);
 
   async function handleCreatePlan() {
     if (!account || !name.trim() || !price) return;
     setCreating(true);
     try {
       const nameFelt = shortString.encodeShortString(name.trim());
-      const priceUsdc = BigInt(Math.round(Number(price) * 1_000_000)); // 6 decimals
-      const interval = 2592000n; // 30 days
-
+      const priceUsdc = BigInt(Math.round(Number(price) * 1_000_000));
       const result = await account.execute([{
         contractAddress: STARKPAY_ADDRESS,
         entrypoint: "create_plan",
-        calldata: [
-          nameFelt,
-          priceUsdc.toString(),    // u256 low
-          "0",                      // u256 high
-          interval.toString(),      // interval u64
-        ],
+        calldata: [nameFelt, priceUsdc.toString(), "0", intervalSec.toString()],
       }]);
       setToast({ message: `Plan "${name}" created! TX: ${result.transaction_hash.slice(0, 14)}…`, type: "success" });
       setShowForm(false);
       setName("");
       setPrice("");
+      setIntervalSec(2592000);
     } catch (err: any) {
-      console.error("Create plan failed:", err);
       setToast({ message: err?.message ?? "Failed to create plan", type: "error" });
     } finally {
       setCreating(false);
     }
   }
 
+  const inputStyle = { padding: "10px 14px", borderRadius: 10, fontSize: 13, color: "#fff", background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.12)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" as const };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
         <div>
           <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>My Plans</h1>
-          <p style={{ fontSize: 13, color: "rgba(161,161,170,0.5)", marginTop: 6, fontFamily: "ui-monospace,'SF Mono',monospace" }}>
-            Create and manage your subscription plans on-chain
-          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+            <p style={{ fontSize: 13, color: "rgba(161,161,170,0.5)", fontFamily: "ui-monospace,'SF Mono',monospace", margin: 0 }}>
+              {planCount}/{planLimit === 18446744073709551615 ? "∞" : planLimit} plans used
+            </p>
+            <span style={{
+              fontSize: 11, fontWeight: 600, padding: "2px 10px", borderRadius: 99,
+              background: TIER_COLORS[tier], color: TIER_TEXT[tier],
+              fontFamily: "ui-monospace,'SF Mono',monospace", textTransform: "uppercase", letterSpacing: "0.08em",
+            }}>
+              {TIER_LABEL[tier]}
+            </span>
+          </div>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
-          style={{
-            display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 12,
-            background: "#7c3aed", color: "#fff", fontWeight: 600, fontSize: 13.5,
-            border: "none", cursor: "pointer", flexShrink: 0, transition: "background 0.15s",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#7c3aed"; }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          New Plan
-        </button>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+          <button
+            onClick={() => canCreatePlan && setShowForm(!showForm)}
+            disabled={!canCreatePlan}
+            style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 12,
+              background: canCreatePlan ? "#7c3aed" : "rgba(124,58,237,0.2)", color: "#fff",
+              fontWeight: 600, fontSize: 13.5, border: canCreatePlan ? "none" : "1px solid rgba(124,58,237,0.3)",
+              cursor: canCreatePlan ? "pointer" : "not-allowed", flexShrink: 0,
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Plan
+          </button>
+          {!canCreatePlan && (
+            <p style={{ fontSize: 11, color: "rgba(251,191,36,0.7)", fontFamily: "ui-monospace,'SF Mono',monospace", margin: 0, textAlign: "right" }}>
+              Plan limit reached · Upgrade tier to add more
+            </p>
+          )}
+        </div>
       </div>
 
       {showForm && (
         <div style={{ ...glassCard, padding: 24, border: "0.5px solid rgba(139,92,246,0.25)" }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(210,210,230,0.85)", marginBottom: 20 }}>Create New Plan (on-chain)</p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 18 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.45)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Plan Name (max 31 chars)</label>
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Pro Monthly"
-                maxLength={31}
-                style={{ padding: "10px 14px", borderRadius: 10, fontSize: 13, color: "#fff", background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.12)", outline: "none", fontFamily: "inherit" }}
+              <label style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.45)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Plan Name</label>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Pro" maxLength={31}
+                style={inputStyle}
                 onFocus={e => { e.currentTarget.style.border = "0.5px solid rgba(139,92,246,0.5)"; }}
                 onBlur={e => { e.currentTarget.style.border = "0.5px solid rgba(255,255,255,0.12)"; }}
               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.45)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Price (USDC / month)</label>
+              <label style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.45)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Price (USDC)</label>
               <input value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. 49" type="number" min="0"
-                style={{ padding: "10px 14px", borderRadius: 10, fontSize: 13, color: "#fff", background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.12)", outline: "none", fontFamily: "ui-monospace,'SF Mono',monospace" }}
+                style={inputStyle}
                 onFocus={e => { e.currentTarget.style.border = "0.5px solid rgba(139,92,246,0.5)"; }}
                 onBlur={e => { e.currentTarget.style.border = "0.5px solid rgba(255,255,255,0.12)"; }}
               />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.45)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Interval</label>
+              <select value={intervalSec} onChange={e => setIntervalSec(Number(e.target.value))}
+                style={{ ...inputStyle, cursor: "pointer" }}
+                onFocus={e => { e.currentTarget.style.border = "0.5px solid rgba(139,92,246,0.5)"; }}
+                onBlur={e => { e.currentTarget.style.border = "0.5px solid rgba(255,255,255,0.12)"; }}
+              >
+                {INTERVAL_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value} style={{ background: "#1a1033" }}>{o.label}</option>
+                ))}
+              </select>
             </div>
           </div>
           <div style={{ fontSize: 11, color: "rgba(161,161,170,0.35)", fontFamily: "ui-monospace,'SF Mono',monospace", marginBottom: 16 }}>
-            Interval: 30 days · Network: Starknet Sepolia
+            Network: Starknet Sepolia · Tier: {TIER_LABEL[tier]} ({planCount}/{planLimit === 18446744073709551615 ? "∞" : planLimit} plans)
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={handleCreatePlan} disabled={creating || !account || !name.trim() || !price}
               style={{
                 padding: "9px 18px", borderRadius: 10, background: "#7c3aed", color: "#fff",
-                fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", transition: "background 0.15s",
+                fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer",
                 opacity: (creating || !account || !name.trim() || !price) ? 0.5 : 1,
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "#7c3aed"; }}
             >
               {creating ? "Creating…" : "Create on-chain"}
             </button>
             <button onClick={() => setShowForm(false)} style={{
               padding: "9px 18px", borderRadius: 10, background: "transparent",
-              border: "0.5px solid rgba(255,255,255,0.12)", color: "rgba(161,161,170,0.55)",
-              fontSize: 13, cursor: "pointer", transition: "all 0.15s",
-            }}
-              onMouseEnter={e => { e.currentTarget.style.color = "rgba(210,210,230,0.85)"; }}
-              onMouseLeave={e => { e.currentTarget.style.color = "rgba(161,161,170,0.55)"; }}
-            >
+              border: "0.5px solid rgba(255,255,255,0.12)", color: "rgba(161,161,170,0.55)", fontSize: 13, cursor: "pointer",
+            }}>
               Cancel
             </button>
           </div>

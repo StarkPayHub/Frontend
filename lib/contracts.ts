@@ -1,7 +1,7 @@
 export const STARKPAY_ADDRESS =
-  "0x0107315163ae18bb11f491bc2fa4258df4abbdd3496b6171af639a9e99ff9000";
+  "0x058a1e8058620d285047c7ee3df15804898070e6788fbffe004a29ffa554aa2c";
 export const MOCK_USDC_ADDRESS =
-  "0x0267c4641ff0fdcb174221bbec398cb1f2e4f423c90b3638c6c87924d7f9792e";
+  "0x03f2e44f91a2994b1748473aebe2512a280a4ada60df57d31886d3faf95a0776";
 
 export const starkpayAbi = [
   { type: "impl", name: "StarkPayImpl", interface_name: "starkpay_contracts::interfaces::IStarkPay" },
@@ -19,15 +19,18 @@ export const starkpayAbi = [
       { type: "function", name: "execute_renewal", inputs: [{ name: "user", type: "core::starknet::contract_address::ContractAddress" }, { name: "plan_id", type: "core::integer::u64" }], outputs: [], state_mutability: "external" },
       { type: "function", name: "cancel_subscription", inputs: [{ name: "plan_id", type: "core::integer::u64" }], outputs: [], state_mutability: "external" },
       { type: "function", name: "withdraw", inputs: [], outputs: [], state_mutability: "external" },
+      { type: "function", name: "set_tier_limit", inputs: [{ name: "plan_id", type: "core::integer::u64" }, { name: "limit", type: "core::integer::u64" }], outputs: [], state_mutability: "external" },
       { type: "function", name: "get_plan", inputs: [{ name: "plan_id", type: "core::integer::u64" }], outputs: [{ type: "starkpay_contracts::interfaces::Plan" }], state_mutability: "view" },
       { type: "function", name: "get_subscription", inputs: [{ name: "user", type: "core::starknet::contract_address::ContractAddress" }, { name: "plan_id", type: "core::integer::u64" }], outputs: [{ type: "starkpay_contracts::interfaces::Subscription" }], state_mutability: "view" },
       { type: "function", name: "is_subscription_active", inputs: [{ name: "user", type: "core::starknet::contract_address::ContractAddress" }, { name: "plan_id", type: "core::integer::u64" }], outputs: [{ type: "core::bool" }], state_mutability: "view" },
       { type: "function", name: "get_merchant_stats", inputs: [{ name: "merchant", type: "core::starknet::contract_address::ContractAddress" }], outputs: [{ type: "starkpay_contracts::interfaces::MerchantStats" }], state_mutability: "view" },
       { type: "function", name: "get_plan_count", inputs: [], outputs: [{ type: "core::integer::u64" }], state_mutability: "view" },
+      { type: "function", name: "get_merchant_plan_count", inputs: [{ name: "merchant", type: "core::starknet::contract_address::ContractAddress" }], outputs: [{ type: "core::integer::u64" }], state_mutability: "view" },
+      { type: "function", name: "get_merchant_plan_limit", inputs: [{ name: "merchant", type: "core::starknet::contract_address::ContractAddress" }], outputs: [{ type: "core::integer::u64" }], state_mutability: "view" },
     ],
   },
   { type: "constructor", name: "constructor", inputs: [{ name: "usdc_address", type: "core::starknet::contract_address::ContractAddress" }] },
-  { type: "event", name: "starkpay_contracts::starkpay::StarkPay::Event", kind: "enum", variants: [{ name: "PlanCreated", type: "starkpay_contracts::starkpay::StarkPay::PlanCreated", kind: "nested" }, { name: "SubscriptionCreated", type: "starkpay_contracts::starkpay::StarkPay::SubscriptionCreated", kind: "nested" }, { name: "RenewalExecuted", type: "starkpay_contracts::starkpay::StarkPay::RenewalExecuted", kind: "nested" }, { name: "PaymentFailed", type: "starkpay_contracts::starkpay::StarkPay::PaymentFailed", kind: "nested" }, { name: "SubscriptionCancelled", type: "starkpay_contracts::starkpay::StarkPay::SubscriptionCancelled", kind: "nested" }, { name: "WithdrawalMade", type: "starkpay_contracts::starkpay::StarkPay::WithdrawalMade", kind: "nested" }] },
+  { type: "event", name: "starkpay_contracts::starkpay::StarkPay::Event", kind: "enum", variants: [{ name: "PlanCreated", type: "starkpay_contracts::starkpay::StarkPay::PlanCreated", kind: "nested" }, { name: "SubscriptionCreated", type: "starkpay_contracts::starkpay::StarkPay::SubscriptionCreated", kind: "nested" }, { name: "RenewalExecuted", type: "starkpay_contracts::starkpay::StarkPay::RenewalExecuted", kind: "nested" }, { name: "PaymentFailed", type: "starkpay_contracts::starkpay::StarkPay::PaymentFailed", kind: "nested" }, { name: "SubscriptionCancelled", type: "starkpay_contracts::starkpay::StarkPay::SubscriptionCancelled", kind: "nested" }, { name: "WithdrawalMade", type: "starkpay_contracts::starkpay::StarkPay::WithdrawalMade", kind: "nested" }, { name: "TierLimitUpdated", type: "starkpay_contracts::starkpay::StarkPay::TierLimitUpdated", kind: "nested" }] },
 ] as const;
 
 export const mockUsdcAbi = [
