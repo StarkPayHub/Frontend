@@ -6,6 +6,7 @@ import { SubscribeButton } from "@/components/SubscribeButton";
 import { PricingCardSkeleton } from "@/components/Skeleton";
 import { PLANS } from "@/lib/constants";
 import { useAccount } from "@starknet-react/core";
+import { useMySubscriptions } from "@/hooks/useMySubscriptions";
 
 /* ── Per-plan liquid orb config ───────────────────────────────────────────── */
 const ORB_CFG = [
@@ -44,6 +45,11 @@ const ORB_CFG = [
 export default function PricingPage() {
   const { status } = useAccount();
   const isInitialising = status === "reconnecting";
+  const { subscriptions } = useMySubscriptions();
+
+  function getSubForPlan(planId: number) {
+    return subscriptions.find(s => s.planId === planId && s.active && !s.isExpired);
+  }
 
   return (
     <div className="min-h-screen" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(60,20,120,0.3) 0%, rgba(4,2,18,1) 60%)", backgroundColor: "#04020f" }}>
@@ -203,6 +209,8 @@ export default function PricingPage() {
                             planId={plan.id}
                             price={plan.price}
                             priceDisplay={plan.priceDisplay}
+                            isSubscribed={!!getSubForPlan(plan.id)}
+                            periodEnd={getSubForPlan(plan.id)?.currentPeriodEnd}
                             className={
                               isHighlight
                                 ? "bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/25"

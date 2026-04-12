@@ -8,6 +8,8 @@ interface SubscribeButtonProps {
   planId: number;
   price: bigint;
   priceDisplay: string;
+  isSubscribed?: boolean;
+  periodEnd?: number;      // unix timestamp
   className?: string;
 }
 
@@ -15,6 +17,8 @@ export function SubscribeButton({
   planId,
   price,
   priceDisplay,
+  isSubscribed = false,
+  periodEnd,
   className = "",
 }: SubscribeButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -47,10 +51,11 @@ export function SubscribeButton({
     }
   }
 
+  // Just subscribed via this session
   if (txHash) {
     return (
       <div className="w-full text-center space-y-2">
-        <div className="flex items-center justify-center gap-2 text-emerald-400 font-medium">
+        <div className="flex items-center justify-center gap-2 text-emerald-400 font-medium text-sm">
           <span>✓</span>
           <span>Subscribed!</span>
         </div>
@@ -62,6 +67,36 @@ export function SubscribeButton({
         >
           {txHash.slice(0, 10)}... View on Voyager ↗
         </a>
+      </div>
+    );
+  }
+
+  // Already subscribed on-chain
+  if (isSubscribed) {
+    const renewDate = periodEnd
+      ? new Date(periodEnd * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+      : null;
+    return (
+      <div className="w-full">
+        <div
+          className="w-full h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold"
+          style={{
+            background: "rgba(52,211,153,0.08)",
+            border: "1px solid rgba(52,211,153,0.25)",
+            color: "#34d399",
+            cursor: "default",
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          Active Plan
+        </div>
+        {renewDate && (
+          <p style={{ fontSize: 11, textAlign: "center", marginTop: 6, color: "rgba(161,161,170,0.45)", fontFamily: "ui-monospace,'SF Mono',monospace" }}>
+            Renews {renewDate}
+          </p>
+        )}
       </div>
     );
   }
