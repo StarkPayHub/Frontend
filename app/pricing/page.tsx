@@ -3,7 +3,6 @@
 import { Navbar } from "@/components/Navbar";
 import { ClaimUSDC } from "@/components/ClaimUSDC";
 import { SubscribeButton } from "@/components/SubscribeButton";
-import { PrivySocialButton } from "@/components/PrivySocialButton";
 import { PricingCardSkeleton } from "@/components/Skeleton";
 import { PLANS } from "@/lib/constants";
 import { useAccount } from "@starknet-react/core";
@@ -200,25 +199,16 @@ export default function PricingPage() {
 
                         {/* CTA */}
                         {plan.price > 0n ? (
-                          <div className="space-y-3">
-                            <SubscribeButton
-                              planId={plan.id}
-                              price={plan.price}
-                              priceDisplay={plan.priceDisplay}
-                              starkzapWallet={null}
-                              className={
-                                isHighlight
-                                  ? "bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/25"
-                                  : "bg-white/5 hover:bg-white/10 border border-white/10 text-white"
-                              }
-                            />
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 h-px bg-white/[0.05]" />
-                              <span className="text-[10px] text-zinc-700 font-mono uppercase tracking-wider">or</span>
-                              <div className="flex-1 h-px bg-white/[0.05]" />
-                            </div>
-                            <PrivySocialButton variant="card" label="Subscribe with Google" />
-                          </div>
+                          <SubscribeButton
+                            planId={plan.id}
+                            price={plan.price}
+                            priceDisplay={plan.priceDisplay}
+                            className={
+                              isHighlight
+                                ? "bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/25"
+                                : "bg-white/5 hover:bg-white/10 border border-white/10 text-white"
+                            }
+                          />
                         ) : (
                           <button className="w-full h-11 rounded-xl text-sm font-semibold transition-colors"
                             style={{

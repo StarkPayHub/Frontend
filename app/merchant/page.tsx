@@ -3,14 +3,12 @@
 import { useState } from "react";
 import { useAccount, useDisconnect } from "@starknet-react/core";
 import { shortString } from "starknet";
-import { useStarkzap } from "@/components/StarkzapProvider";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { KpiSkeleton, TableRowSkeleton } from "@/components/Skeleton";
 import { Toast } from "@/components/Toast";
-import { SignOutModal } from "@/components/Navbar";
-import { STARKPAY_ADDRESS, MOCK_USDC_ADDRESS } from "@/lib/contracts";
+import { STARKPAY_ADDRESS } from "@/lib/contracts";
 import { useMerchantStats, usdcDisplay } from "@/hooks/useMerchantStats";
-import { usePlans, type OnChainPlan } from "@/hooks/usePlans";
+import { usePlans } from "@/hooks/usePlans";
 import { useReadContract } from "@starknet-react/core";
 import { starkpayAbi } from "@/lib/contracts";
 
@@ -19,7 +17,8 @@ function addrEq(a: string | undefined, b: string | undefined): boolean {
   if (!a || !b) return false;
   try { return BigInt(a) === BigInt(b); } catch { return false; }
 }
-import { useSubscriptionEvents, useWithdrawalEvents } from "@/hooks/useContractEvents";
+import { useSubscriptionEvents, useWithdrawalEvents, useRenewalEvents } from "@/hooks/useContractEvents";
+import { buildRevenueGroups, exportExcel, exportPdf, type GroupBy } from "@/lib/exportRevenue";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -77,7 +76,6 @@ function KpiCard({ label, value, sub, subColor, orb, loading }: {
 // ── Sidebar ────────────────────────────────────────────────────────────────────
 function Sidebar({ address, section, setSection }: { address?: string; section: Section; setSection: (s: Section) => void }) {
   const { disconnect } = useDisconnect();
-  const { privyAuthenticated, privyLogout } = useStarkzap();
   const router = useRouter();
   const [confirmSignOut, setConfirmSignOut] = useState(false);
 
@@ -172,21 +170,24 @@ function Sidebar({ address, section, setSection }: { address?: string; section: 
             onMouseLeave={e => { e.currentTarget.style.color = "rgba(161,161,170,0.35)"; e.currentTarget.style.background = "none"; }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            {privyAuthenticated ? "Sign out" : "Disconnect"}
+            Disconnect
           </button>
         </div>
       )}
       {confirmSignOut && (
-        <SignOutModal
-          email={privyAuthenticated ? (address ?? null) : null}
-          onCancel={() => setConfirmSignOut(false)}
-          onConfirm={() => {
-            if (privyAuthenticated) { privyLogout?.(); }
-            else { disconnect(); }
-            setConfirmSignOut(false);
-            router.push("/");
-          }}
-        />
+        <div
+          onClick={() => setConfirmSignOut(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)" }}
+        >
+          <div style={{ background: "rgba(14,10,32,0.98)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "24px", maxWidth: 280, width: "100%", textAlign: "center" }}
+            onClick={e => e.stopPropagation()}>
+            <p style={{ color: "#fff", fontWeight: 600, marginBottom: 8 }}>Disconnect wallet?</p>
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setConfirmSignOut(false)} style={{ flex: 1, height: 40, borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => { disconnect(); setConfirmSignOut(false); router.push("/"); }} style={{ flex: 1, height: 40, borderRadius: 10, border: "none", background: "rgba(239,68,68,0.15)", color: "#f87171", fontWeight: 600, cursor: "pointer" }}>Disconnect</button>
+            </div>
+          </div>
+        </div>
       )}
     </aside>
   );
@@ -245,14 +246,40 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
   const [withdrawing, setWithdrawing] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [exporting, setExporting] = useState<"pdf" | "xlsx" | null>(null);
+  const [groupBy, setGroupBy] = useState<GroupBy>("month");
 
-  const { totalRevenueDisplay, withdrawableDisplay, activeSubs, txCount, withdrawable, isLoading: statsLoading, refetch } = useMerchantStats();
+  const { totalRevenueDisplay, withdrawableDisplay, activeSubs, txCount, withdrawable, totalRevenue, isLoading: statsLoading, refetch } = useMerchantStats();
   const { plans, isLoading: plansLoading } = usePlans();
+  const { events: subEvents } = useSubscriptionEvents();
+  const { events: renewalEvents } = useRenewalEvents();
 
   // Filter only plans belonging to the connected merchant
   const myPlans = address
     ? plans.filter(p => p.active && addrEq(p.merchant, address))
     : plans.filter(p => p.active);
+
+  const myPlanIds = new Set(myPlans.map(p => p.id));
+
+  const groups = buildRevenueGroups(subEvents, renewalEvents, myPlanIds, groupBy);
+  const maxRevenue = groups.reduce((max, m) => m.revenue > max ? m.revenue : max, 0n);
+
+  async function handleExport(type: "pdf" | "xlsx") {
+    if (!address) return;
+    setExporting(type);
+    try {
+      if (type === "xlsx") {
+        await exportExcel(subEvents, renewalEvents, plans, address, myPlanIds, totalRevenue ?? 0n, withdrawable ?? 0n, activeSubs);
+      } else {
+        await exportPdf(subEvents, renewalEvents, plans, address, myPlanIds, totalRevenue ?? 0n, withdrawable ?? 0n, activeSubs);
+      }
+    } catch (err) {
+      console.error("Export failed:", err);
+      setToast({ message: "Export failed. Please try again.", type: "error" });
+    } finally {
+      setExporting(null);
+    }
+  }
 
   async function handleWithdraw() {
     if (!account) return;
@@ -279,43 +306,160 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+      {/* ── Header ── */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
           <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>Merchant Revenue</h1>
           <p style={{ fontSize: 13, color: "rgba(161,161,170,0.5)", marginTop: 6, fontFamily: "ui-monospace,'SF Mono',monospace" }}>
             Your subscription earnings on Starknet Sepolia
           </p>
         </div>
-        {txHash ? (
-          <a href={`https://sepolia.voyager.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-            ✓ Withdrawn · View tx ↗
-          </a>
-        ) : (
-          <button onClick={handleWithdraw} disabled={withdrawing || !account || withdrawable === 0n}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          {/* Export buttons */}
+          <button onClick={() => handleExport("xlsx")} disabled={exporting !== null || !address}
             style={{
-              display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12,
-              background: "#7c3aed", color: "#fff", fontWeight: 600, fontSize: 13.5,
-              border: "none", cursor: "pointer", flexShrink: 0,
-              boxShadow: "0 4px 20px rgba(124,58,237,0.3)",
-              opacity: (withdrawing || !account || withdrawable === 0n) ? 0.5 : 1,
-              transition: "background 0.15s",
+              display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 10,
+              background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.25)",
+              color: "#34d399", fontWeight: 600, fontSize: 12.5, cursor: "pointer",
+              opacity: (exporting !== null || !address) ? 0.5 : 1, transition: "background 0.15s",
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "#7c3aed"; }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(52,211,153,0.15)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(52,211,153,0.08)"; }}
           >
-            {IcoWithdraw}
-            {withdrawing ? "Withdrawing…" : `Withdraw ${withdrawableDisplay}`}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            {exporting === "xlsx" ? "Exporting…" : "Export Excel"}
           </button>
-        )}
+          <button onClick={() => handleExport("pdf")} disabled={exporting !== null || !address}
+            style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 10,
+              background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)",
+              color: "#f87171", fontWeight: 600, fontSize: 12.5, cursor: "pointer",
+              opacity: (exporting !== null || !address) ? 0.5 : 1, transition: "background 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.15)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            {exporting === "pdf" ? "Exporting…" : "Export PDF"}
+          </button>
+          {/* Withdraw */}
+          {txHash ? (
+            <a href={`https://sepolia.voyager.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399", display: "flex", alignItems: "center", gap: 4 }}>
+              ✓ Withdrawn · View tx ↗
+            </a>
+          ) : (
+            <button onClick={handleWithdraw} disabled={withdrawing || !account || withdrawable === 0n}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 10,
+                background: "#7c3aed", color: "#fff", fontWeight: 600, fontSize: 13,
+                border: "none", cursor: "pointer",
+                boxShadow: "0 4px 20px rgba(124,58,237,0.3)",
+                opacity: (withdrawing || !account || withdrawable === 0n) ? 0.5 : 1,
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#7c3aed"; }}
+            >
+              {IcoWithdraw}
+              {withdrawing ? "Withdrawing…" : `Withdraw ${withdrawableDisplay}`}
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* ── KPI Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         {kpis.map((kpi) => (
           <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} sub={kpi.sub} subColor={kpi.subColor} orb={kpi.orb} loading={statsLoading} />
         ))}
       </div>
 
+      {/* ── Revenue Chart ── */}
+      {groups.length > 0 && (
+        <div style={glassCard}>
+          {/* Card header + filter toggle */}
+          <div style={{ padding: "14px 20px", borderBottom: "0.5px solid rgba(255,255,255,0.07)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(210,210,230,0.85)" }}>Revenue Overview</p>
+            <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: 3 }}>
+              {(["day", "week", "month"] as GroupBy[]).map(g => (
+                <button key={g} onClick={() => setGroupBy(g)}
+                  style={{
+                    padding: "4px 12px", borderRadius: 6, border: "none", cursor: "pointer",
+                    fontSize: 11, fontWeight: 600, fontFamily: "ui-monospace,'SF Mono',monospace",
+                    textTransform: "capitalize",
+                    background: groupBy === g ? "rgba(139,92,246,0.35)" : "transparent",
+                    color: groupBy === g ? "#c4b5fd" : "rgba(161,161,170,0.5)",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {g === "day" ? "Daily" : g === "week" ? "Weekly" : "Monthly"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bar chart */}
+          <div style={{ padding: "20px 20px 8px", overflowX: "auto" }}>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 130, minWidth: "max-content" }}>
+              {groups.map(g => {
+                const heightPct = maxRevenue > 0n ? Number((g.revenue * 100n) / maxRevenue) : 0;
+                const isEmpty = g.revenue === 0n;
+                const barW = groups.length > 60 ? 8 : groups.length > 30 ? 12 : groups.length > 14 ? 20 : 36;
+                return (
+                  <div key={g.key} title={isEmpty ? g.label : `${g.label}: $${(Number(g.revenue) / 1_000_000).toFixed(2)} · ${g.txCount} tx · ${g.subscribers.length} wallets`}
+                    style={{ width: barW, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "default" }}>
+                    <p style={{ fontSize: 9, fontFamily: "ui-monospace,'SF Mono',monospace", color: isEmpty ? "transparent" : "rgba(161,161,170,0.45)", whiteSpace: "nowrap" }}>
+                      ${(Number(g.revenue) / 1_000_000).toFixed(0)}
+                    </p>
+                    <div style={{ width: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", height: 80 }}>
+                      <div style={{
+                        width: "100%", borderRadius: "4px 4px 0 0",
+                        height: isEmpty ? "3px" : `${Math.max(heightPct, 4)}%`,
+                        background: isEmpty
+                          ? "rgba(255,255,255,0.05)"
+                          : "linear-gradient(180deg,rgba(167,139,250,0.95) 0%,rgba(109,40,217,0.65) 100%)",
+                        transition: "height 0.25s ease",
+                        boxShadow: heightPct > 60 ? "0 0 12px rgba(139,92,246,0.4)" : undefined,
+                      }} />
+                    </div>
+                    <p style={{ fontSize: 8.5, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.35)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%", textAlign: "center" }}>
+                      {g.label}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Table */}
+          <table style={{ width: "100%", borderCollapse: "collapse", borderTop: "0.5px solid rgba(255,255,255,0.07)" }}>
+            <thead>
+              <tr style={tableHead}>
+                {["Period", "Revenue", "Transactions", "Unique Wallets", "Subscribers"].map(h => (
+                  <th key={h} style={{ padding: "10px 20px", textAlign: "left", fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {groups.slice().reverse().map(g => (
+                <tr key={g.key} style={tableRow}>
+                  <td style={{ padding: "11px 20px", fontSize: 13, color: "#fff", fontWeight: 500 }}>{g.label}</td>
+                  <td style={{ padding: "11px 20px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399" }}>${(Number(g.revenue) / 1_000_000).toFixed(2)}</td>
+                  <td style={{ padding: "11px 20px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.7)" }}>{g.txCount}</td>
+                  <td style={{ padding: "11px 20px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.7)" }}>{g.subscribers.length}</td>
+                  <td style={{ padding: "11px 20px", fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", maxWidth: 200 }}>
+                    {g.subscribers.slice(0, 2).map(s => s.slice(0, 8) + "…").join(", ")}
+                    {g.subscribers.length > 2 && ` +${g.subscribers.length - 2} more`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── Active Plans Summary ── */}
       <div style={glassCard}>
         <div style={{ padding: "16px 24px", borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(210,210,230,0.85)" }}>Active Plans Summary</p>
@@ -849,11 +993,10 @@ function NotConnected() {
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function MerchantPage() {
   const { account, address, status } = useAccount();
-  const { privyAuthenticated, privyEmail } = useStarkzap();
   const [section, setSection] = useState<Section>("revenue");
 
-  const isAuth = status === "connected" || privyAuthenticated;
-  const displayId = address ?? privyEmail ?? undefined;
+  const isAuth = status === "connected";
+  const displayId = address;
 
   if (status === "reconnecting") return <MerchantSkeleton />;
   if (!isAuth) return <NotConnected />;

@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { useAccount, useDisconnect } from "@starknet-react/core";
-import { useStarkzap } from "@/components/StarkzapProvider";
 import { ClaimUSDC } from "@/components/ClaimUSDC";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { KpiSkeleton, SubRowSkeleton } from "@/components/Skeleton";
 import { Toast } from "@/components/Toast";
-import { SignOutModal } from "@/components/Navbar";
 import { STARKPAY_ADDRESS } from "@/lib/contracts";
 import { useMySubscriptions } from "@/hooks/useMySubscriptions";
 import { useSubscriptionEvents, useRenewalEvents } from "@/hooks/useContractEvents";
@@ -92,7 +90,6 @@ function KpiCard({ label, value, orb }: { label: string; value: string; orb: { c
 // ── Sidebar ────────────────────────────────────────────────────────────────────
 function Sidebar({ address, section, setSection }: { address?: string; section: Section; setSection: (s: Section) => void }) {
   const { disconnect } = useDisconnect();
-  const { privyAuthenticated, privyLogout } = useStarkzap();
   const router = useRouter();
   const [confirmSignOut, setConfirmSignOut] = useState(false);
 
@@ -209,21 +206,24 @@ function Sidebar({ address, section, setSection }: { address?: string; section: 
             onMouseLeave={e => { e.currentTarget.style.color = "rgba(113,113,122,0.5)"; e.currentTarget.style.background = "none"; }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            {privyAuthenticated ? "Sign out" : "Disconnect"}
+            Disconnect
           </button>
         </div>
       )}
       {confirmSignOut && (
-        <SignOutModal
-          email={privyAuthenticated ? (address ?? null) : null}
-          onCancel={() => setConfirmSignOut(false)}
-          onConfirm={() => {
-            if (privyAuthenticated) { privyLogout?.(); }
-            else { disconnect(); }
-            setConfirmSignOut(false);
-            router.push("/");
-          }}
-        />
+        <div
+          onClick={() => setConfirmSignOut(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)" }}
+        >
+          <div style={{ background: "rgba(14,10,32,0.98)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "24px", maxWidth: 280, width: "100%", textAlign: "center" }}
+            onClick={e => e.stopPropagation()}>
+            <p style={{ color: "#fff", fontWeight: 600, marginBottom: 8 }}>Disconnect wallet?</p>
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setConfirmSignOut(false)} style={{ flex: 1, height: 40, borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => { disconnect(); setConfirmSignOut(false); router.push("/"); }} style={{ flex: 1, height: 40, borderRadius: 10, border: "none", background: "rgba(239,68,68,0.15)", color: "#f87171", fontWeight: 600, cursor: "pointer" }}>Disconnect</button>
+            </div>
+          </div>
+        </div>
       )}
     </aside>
   );
@@ -697,11 +697,10 @@ function NotConnected() {
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { address, status } = useAccount();
-  const { privyAuthenticated, privyEmail } = useStarkzap();
   const [section, setSection] = useState<Section>("subscriptions");
 
-  const isAuth = status === "connected" || privyAuthenticated;
-  const displayId = address ?? privyEmail ?? undefined;
+  const isAuth = status === "connected";
+  const displayId = address;
 
   if (status === "reconnecting") return <DashboardSkeleton />;
   if (!isAuth) return <NotConnected />;

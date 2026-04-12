@@ -5,8 +5,8 @@ export const PLANS = [
   {
     id: 1,
     name: "Starter",
-    price: BigInt("9000000"), // 9 USDC (6 decimals)
-    priceDisplay: "$9",
+    price: BigInt("10000000"), // 10 USDC (6 decimals)
+    priceDisplay: "$10",
     interval: 2592000, // 30 days in seconds
     features: [
       "Up to 50 active subscribers",
@@ -19,8 +19,8 @@ export const PLANS = [
   {
     id: 2,
     name: "Pro",
-    price: BigInt("49000000"), // 49 USDC
-    priceDisplay: "$49",
+    price: BigInt("15000000"), // 15 USDC (6 decimals)
+    priceDisplay: "$15",
     interval: 2592000,
     features: [
       "Unlimited subscribers",
@@ -34,8 +34,8 @@ export const PLANS = [
   {
     id: 3,
     name: "Enterprise",
-    price: BigInt("0"),
-    priceDisplay: "Custom",
+    price: BigInt("50000000"), // 50 USDC (6 decimals)
+    priceDisplay: "$50",
     interval: 2592000,
     features: [
       "Custom contract deployment",

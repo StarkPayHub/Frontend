@@ -4,6 +4,9 @@ import { RpcProvider, hash } from "starknet";
 import { STARKPAY_ADDRESS } from "@/lib/contracts";
 import { STARKNET_RPC } from "@/lib/constants";
 
+// Block where the current StarkPay contract was deployed
+const DEPLOY_BLOCK = 8_540_000;
+
 export interface SubscriptionEvent {
   user: string;
   planId: number;
@@ -37,6 +40,26 @@ function addrHex(key: any): string {
   return "0x" + BigInt(key ?? 0).toString(16);
 }
 
+// Fetch all pages of events following continuation_token
+async function fetchAllEvents(
+  provider: RpcProvider,
+  params: { address: string; keys?: string[][]; from_block: object; chunk_size: number }
+) {
+  const all: any[] = [];
+  let continuationToken: string | undefined;
+  do {
+    const filter: any = {
+      ...params,
+      to_block: "latest",
+      ...(continuationToken ? { continuation_token: continuationToken } : {}),
+    };
+    const res: any = await provider.getEvents(filter);
+    all.push(...(res.events ?? []));
+    continuationToken = res.continuation_token;
+  } while (continuationToken);
+  return all;
+}
+
 // All SubscriptionCreated events from the contract
 export function useSubscriptionEvents() {
   const [events, setEvents] = useState<SubscriptionEvent[]>([]);
@@ -48,14 +71,13 @@ export function useSubscriptionEvents() {
 
     (async () => {
       try {
-        const res = await provider.getEvents({
+        const rawEvents = await fetchAllEvents(provider, {
           address: STARKPAY_ADDRESS,
           keys: [[key]],
-          from_block: { block_number: 0 },
-          to_block: "latest",
+          from_block: { block_number: DEPLOY_BLOCK },
           chunk_size: 100,
         });
-        setEvents(res.events.map(e => ({
+        setEvents(rawEvents.map(e => ({
           user: addrHex(e.keys[1]),
           planId: Number(e.data[0] ?? 0),
           amount: u256From(e.data[1], e.data[2]),
@@ -84,14 +106,13 @@ export function useRenewalEvents() {
 
     (async () => {
       try {
-        const res = await provider.getEvents({
+        const rawEvents = await fetchAllEvents(provider, {
           address: STARKPAY_ADDRESS,
           keys: [[key]],
-          from_block: { block_number: 0 },
-          to_block: "latest",
+          from_block: { block_number: DEPLOY_BLOCK },
           chunk_size: 100,
         });
-        setEvents(res.events.map(e => ({
+        setEvents(rawEvents.map(e => ({
           user: addrHex(e.keys[1]),
           planId: Number(e.data[0] ?? 0),
           amount: u256From(e.data[1], e.data[2]),
@@ -123,14 +144,13 @@ export function useWithdrawalEvents(merchant?: string) {
 
     (async () => {
       try {
-        const res = await provider.getEvents({
+        const rawEvents = await fetchAllEvents(provider, {
           address: STARKPAY_ADDRESS,
           keys: [[key]],
-          from_block: { block_number: 0 },
-          to_block: "latest",
+          from_block: { block_number: DEPLOY_BLOCK },
           chunk_size: 100,
         });
-        const filtered = res.events
+        const filtered = rawEvents
           .filter(e => addrHex(e.keys[1]) === merchantNorm)
           .map(e => ({
             merchant: merchantNorm,

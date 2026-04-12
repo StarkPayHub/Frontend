@@ -9,9 +9,6 @@ interface SubscribeButtonProps {
   price: bigint;
   priceDisplay: string;
   className?: string;
-  /** Starkzap wallet from SocialLoginButton.onWalletReady — for gasless social login path */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  starkzapWallet?: any | null;
 }
 
 export function SubscribeButton({
@@ -19,13 +16,11 @@ export function SubscribeButton({
   price,
   priceDisplay,
   className = "",
-  starkzapWallet = null,
 }: SubscribeButtonProps) {
   const [loading, setLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const { account, status } = useAccount();
 
-  // The approve + subscribe multicall array (same for both wallet paths)
   const calls = [
     {
       contractAddress: MOCK_USDC_ADDRESS,
@@ -40,20 +35,10 @@ export function SubscribeButton({
   ];
 
   async function handleSubscribe() {
+    if (!account) return;
     setLoading(true);
     try {
-      let result: { transaction_hash: string };
-
-      if (starkzapWallet) {
-        // ── Starkzap path (social login, gasless) ──────────────────────────
-        result = await starkzapWallet.execute(calls, { feeMode: "sponsored" });
-      } else if (account) {
-        // ── starknet-react path (Argent X / Braavos) ───────────────────────
-        result = await account.execute(calls);
-      } else {
-        return;
-      }
-
+      const result = await account.execute(calls);
       setTxHash(result.transaction_hash);
     } catch (err) {
       console.error("Subscribe failed:", err);
@@ -81,7 +66,7 @@ export function SubscribeButton({
     );
   }
 
-  const isConnected = status === "connected" || starkzapWallet !== null;
+  const isConnected = status === "connected";
 
   return (
     <button

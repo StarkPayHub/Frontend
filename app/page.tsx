@@ -4,10 +4,8 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { MatrixBackground } from "@/components/MatrixBackground";
-import { PrivySocialButton } from "@/components/PrivySocialButton";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { useAccount } from "@starknet-react/core";
-import { useStarkzap } from "@/components/StarkzapProvider";
 
 /* ─────────────────────────────────────────────
    Single IntersectionObserver for all sections
@@ -117,8 +115,7 @@ function FlowDivider() {
 export default function Home() {
   useScrollReveal();
   const { status } = useAccount();
-  const { privyAuthenticated } = useStarkzap();
-  const isAuth = status === "connected" || privyAuthenticated;
+  const isAuth = status === "connected";
 
   return (
     <>
@@ -172,19 +169,8 @@ export default function Home() {
                   Start Building →
                 </Link>
               ) : (
-                /* ── Not authenticated: connect options ── */
-                <div className="flex flex-col items-center gap-3">
-                  <ConnectWallet />
-                  <div className="flex items-center gap-3 w-64">
-                    <div className="flex-1 h-px bg-white/[0.07]" />
-                    <span style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(113,113,122,0.55)", letterSpacing: "0.14em" }}>OR</span>
-                    <div className="flex-1 h-px bg-white/[0.07]" />
-                  </div>
-                  <PrivySocialButton variant="hero" label="Continue with Google" />
-                  <p style={{ fontSize: 11, color: "rgba(113,113,122,0.45)", fontFamily: "ui-monospace,'SF Mono',monospace", marginTop: -4 }}>
-                    Gasless · powered by Starkzap
-                  </p>
-                </div>
+                /* ── Not authenticated: connect wallet ── */
+                <ConnectWallet />
               )}
 
               <Link href="/demo"
