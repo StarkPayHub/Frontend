@@ -4,30 +4,42 @@ import { useAccount, useConnect, useDisconnect } from "@starknet-react/core";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 
-/* ── Wallet brand colours & labels ── */
-const WALLET: Record<string, { bg: string; label: string; desc: string }> = {
-  argentx: { bg: "linear-gradient(145deg,#f97316,#ea580c)", label: "Ax", desc: "Argent X" },
-  braavos:  { bg: "linear-gradient(145deg,#3b82f6,#1d4ed8)", label: "Bv", desc: "Braavos"  },
-};
-
-function walletMeta(id: string) {
+/* ── Wallet display name ── */
+function walletName(id: string): string {
   const key = id.toLowerCase().replace(/[\s_-]/g, "");
-  return (
-    Object.entries(WALLET).find(([k]) => key.includes(k))?.[1] ??
-    { bg: "linear-gradient(145deg,#7c3aed,#4338ca)", label: id.slice(0,2).toUpperCase(), desc: id }
-  );
+  if (key.includes("argentx") || key.includes("argent")) return "Argent X";
+  if (key.includes("braavos")) return "Braavos";
+  return id;
 }
 
-/* ── Wallet icon ── */
-function WalletAvatar({ id, size = 40 }: { id: string; size?: number }) {
-  const { bg, label } = walletMeta(id);
+/* ── Wallet icon — uses real connector.icon, falls back to initials ── */
+function WalletAvatar({
+  icon, id, size = 44,
+}: { icon?: string; id: string; size?: number }) {
+  if (icon) {
+    return (
+      <img
+        src={icon}
+        alt={walletName(id)}
+        width={size}
+        height={size}
+        style={{ borderRadius: 14, flexShrink: 0, objectFit: "contain",
+                 boxShadow: "0 4px 16px rgba(0,0,0,0.35)" }}
+      />
+    );
+  }
+  // fallback initials
+  const key = id.toLowerCase().replace(/[\s_-]/g, "");
+  const bg = key.includes("argent") ? "linear-gradient(145deg,#f97316,#ea580c)"
+           : key.includes("braavos") ? "linear-gradient(145deg,#3b82f6,#1d4ed8)"
+           : "linear-gradient(145deg,#7c3aed,#4338ca)";
   return (
     <div
       className="flex-shrink-0 flex items-center justify-center rounded-2xl font-bold text-white"
       style={{ width: size, height: size, background: bg, fontSize: size * 0.35,
                boxShadow: "0 4px 16px rgba(0,0,0,0.4)" }}
     >
-      {label}
+      {id.slice(0, 2).toUpperCase()}
     </div>
   );
 }
@@ -194,8 +206,9 @@ export function ConnectWallet() {
         {/* Wallet options */}
         <div className="px-4 py-4 space-y-2">
           {connectors.map((connector) => {
-            const meta = walletMeta(connector.id);
             const isLoading = connecting === connector.id;
+            const icon = typeof connector.icon === "string" ? connector.icon
+                       : (connector.icon as any)?.light ?? (connector.icon as any)?.dark ?? undefined;
             return (
               <button
                 key={connector.id}
@@ -212,9 +225,9 @@ export function ConnectWallet() {
                   e.currentTarget.style.border = "1px solid rgba(255,255,255,0.06)";
                 }}
               >
-                <WalletAvatar id={connector.id} size={44} />
+                <WalletAvatar id={connector.id} icon={icon} size={44} />
                 <div className="flex-1 text-left">
-                  <p className="text-white font-semibold text-[15px]">{meta.desc}</p>
+                  <p className="text-white font-semibold text-[15px]">{walletName(connector.id)}</p>
                   <p className="text-zinc-500 text-xs mt-0.5">Starknet browser wallet</p>
                 </div>
                 {isLoading ? (

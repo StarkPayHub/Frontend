@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
+import { useProvider } from "@starknet-react/core";
 import { useAccount, useDisconnect } from "@starknet-react/core";
 import { shortString } from "starknet";
 import { ConnectWallet } from "@/components/ConnectWallet";
@@ -19,7 +21,6 @@ function addrEq(a: string | undefined, b: string | undefined): boolean {
 }
 import { useSubscriptionEvents, useWithdrawalEvents, useRenewalEvents } from "@/hooks/useContractEvents";
 import { buildRevenueGroups, exportExcel, exportPdf, type GroupBy } from "@/lib/exportRevenue";
-import { executeGasless } from "@/lib/gasless";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -175,21 +176,52 @@ function Sidebar({ address, section, setSection }: { address?: string; section: 
           </button>
         </div>
       )}
-      {confirmSignOut && (
+      {confirmSignOut && createPortal(
         <div
           onClick={() => setConfirmSignOut(false)}
-          style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)" }}
+          style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
         >
-          <div style={{ background: "rgba(14,10,32,0.98)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "24px", maxWidth: 280, width: "100%", textAlign: "center" }}
-            onClick={e => e.stopPropagation()}>
-            <p style={{ color: "#fff", fontWeight: 600, marginBottom: 8 }}>Disconnect wallet?</p>
-            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button onClick={() => setConfirmSignOut(false)} style={{ flex: 1, height: 40, borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => { disconnect(); setConfirmSignOut(false); router.push("/"); }} style={{ flex: 1, height: 40, borderRadius: 10, border: "none", background: "rgba(239,68,68,0.15)", color: "#f87171", fontWeight: 600, cursor: "pointer" }}>Disconnect</button>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "rgba(18,12,40,0.96)",
+              border: "0.5px solid rgba(255,255,255,0.12)",
+              borderRadius: 20,
+              padding: "28px 24px 24px",
+              width: 300,
+              boxShadow: "0 32px 80px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.06) inset",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+            }}
+          >
+            {/* Icon */}
+            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(239,68,68,0.1)", border: "0.5px solid rgba(239,68,68,0.2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+            </div>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em" }}>Disconnect wallet?</p>
+            <p style={{ margin: "2px 0 12px", fontSize: 13, color: "rgba(161,161,170,0.55)", textAlign: "center", lineHeight: 1.5 }}>
+              You will be signed out and returned to the home page.
+            </p>
+            {/* Divider */}
+            <div style={{ width: "100%", height: "0.5px", background: "rgba(255,255,255,0.07)", margin: "4px 0" }} />
+            <div style={{ display: "flex", gap: 8, width: "100%", marginTop: 8 }}>
+              <button
+                onClick={() => setConfirmSignOut(false)}
+                style={{ flex: 1, height: 42, borderRadius: 12, border: "0.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.7)", fontWeight: 600, fontSize: 14, cursor: "pointer", transition: "background 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+              >Cancel</button>
+              <button
+                onClick={() => { disconnect(); setConfirmSignOut(false); router.push("/"); }}
+                style={{ flex: 1, height: 42, borderRadius: 12, border: "0.5px solid rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.12)", color: "#f87171", fontWeight: 700, fontSize: 14, cursor: "pointer", transition: "background 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.2)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
+              >Disconnect</button>
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </aside>
   );
 }
@@ -286,11 +318,9 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
     if (!account) return;
     setWithdrawing(true);
     try {
-      const { transaction_hash, gasless } = await executeGasless(account, [
-        { contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }
-      ]);
-      setTxHash(transaction_hash);
-      setToast({ message: `Withdrawal submitted${gasless ? " (gasless ⚡)" : ""} — funds on the way!`, type: "success" });
+      const result = await account.execute([{ contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }]);
+      setTxHash(result.transaction_hash);
+      setToast({ message: "Withdrawal submitted — funds on the way!", type: "success" });
       setTimeout(() => refetch(), 3000);
     } catch (err) {
       console.error("Withdraw failed:", err);
@@ -499,10 +529,10 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
 
 // ── Section: My Plans ─────────────────────────────────────────────────────────
 const INTERVAL_OPTIONS = [
-  { label: "Harian",   value: 86400 },
-  { label: "Mingguan", value: 604800 },
-  { label: "Bulanan",  value: 2592000 },
-  { label: "Tahunan",  value: 31536000 },
+  { label: "Daily",   value: 86400 },
+  { label: "Weekly",  value: 604800 },
+  { label: "Monthly", value: 2592000 },
+  { label: "Yearly",  value: 31536000 },
 ];
 
 // Local hook — baca tier langsung tanpa StarkPayProvider
@@ -548,14 +578,26 @@ const TIER_LABEL: Record<string, string> = {
   enterprise: "Enterprise",
 };
 
+const DEFAULT_FEATURES = `Auto-renewal via keeper bot
+On-chain USDC payments
+Cancel anytime
+Sepolia testnet`;
+
+function savePlanFeatures(planId: number, raw: string) {
+  const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+  localStorage.setItem(`starkpay_features_${planId}`, JSON.stringify(lines));
+}
+
 function SectionPlans({ account, address }: { account: any; address?: string }) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [intervalSec, setIntervalSec] = useState(2592000);
+  const [features, setFeatures] = useState(DEFAULT_FEATURES);
   const [creating, setCreating] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
+  const { provider } = useProvider();
   const { plans, isLoading } = usePlans();
   const myPlans = address ? plans.filter(p => addrEq(p.merchant, address)) : plans;
 
@@ -565,6 +607,7 @@ function SectionPlans({ account, address }: { account: any; address?: string }) 
     if (!account || !name.trim() || !price) return;
     setCreating(true);
     try {
+      const newPlanId = planCount + 1; // sequential — will be assigned this ID
       const nameFelt = shortString.encodeShortString(name.trim());
       const priceUsdc = BigInt(Math.round(Number(price) * 1_000_000));
       const { transaction_hash, gasless } = await executeGasless(account, [{
@@ -572,11 +615,12 @@ function SectionPlans({ account, address }: { account: any; address?: string }) 
         entrypoint: "create_plan",
         calldata: [nameFelt, priceUsdc.toString(), "0", intervalSec.toString()],
       }]);
+      // Wait for confirmation then save features
+      await provider.waitForTransaction(transaction_hash);
+      savePlanFeatures(newPlanId, features);
       setToast({ message: `Plan "${name}" created${gasless ? " (gasless ⚡)" : ""}! TX: ${transaction_hash.slice(0, 14)}…`, type: "success" });
       setShowForm(false);
-      setName("");
-      setPrice("");
-      setIntervalSec(2592000);
+      setName(""); setPrice(""); setIntervalSec(2592000); setFeatures(DEFAULT_FEATURES);
     } catch (err: any) {
       setToast({ message: err?.message ?? "Failed to create plan", type: "error" });
     } finally {
@@ -658,6 +702,25 @@ function SectionPlans({ account, address }: { account: any; address?: string }) 
                 ))}
               </select>
             </div>
+          </div>
+          {/* Features textarea */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 14, marginBottom: 16 }}>
+            <label style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.45)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              Features <span style={{ color: "rgba(161,161,170,0.25)", fontWeight: 400 }}>(one per line)</span>
+            </label>
+            <textarea
+              value={features}
+              onChange={e => setFeatures(e.target.value)}
+              rows={4}
+              placeholder="Auto-renewal via keeper bot&#10;On-chain USDC payments&#10;Cancel anytime"
+              style={{
+                background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 10, padding: "10px 12px",
+                color: "#fff", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace",
+                outline: "none", resize: "vertical", lineHeight: 1.6,
+                width: "100%", boxSizing: "border-box",
+              }}
+            />
           </div>
           <div style={{ fontSize: 11, color: "rgba(161,161,170,0.35)", fontFamily: "ui-monospace,'SF Mono',monospace", marginBottom: 16 }}>
             Network: Starknet Sepolia · Tier: {TIER_LABEL[tier]} ({planCount}/{planLimit === 18446744073709551615 ? "∞" : planLimit} plans)
@@ -829,11 +892,9 @@ function SectionWithdrawals({ account, address }: { account: any; address?: stri
     if (!account) return;
     setWithdrawing(true);
     try {
-      const { transaction_hash, gasless } = await executeGasless(account, [
-        { contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }
-      ]);
-      setTxHash(transaction_hash);
-      setToast({ message: `Withdrawal submitted${gasless ? " (gasless ⚡)" : ""} — funds on the way!`, type: "success" });
+      const result = await account.execute([{ contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }]);
+      setTxHash(result.transaction_hash);
+      setToast({ message: "Withdrawal submitted — funds on the way!", type: "success" });
       setTimeout(() => refetch(), 3000);
     } catch (err) {
       console.error("Withdraw failed:", err);
