@@ -36,12 +36,18 @@ async function paymasterRpc(method: string, params: unknown) {
   return json.result;
 }
 
-/** Convert GaslessCall[] to AVNU call format: { to, selector, calldata } */
+/** Normalize felt value to 0x hex string — AVNU requires hex, not decimal */
+function toHex(value: string): string {
+  if (value.startsWith("0x") || value.startsWith("0X")) return value;
+  try { return "0x" + BigInt(value).toString(16); } catch { return value; }
+}
+
+/** Convert GaslessCall[] to AVNU call format: { to, selector, calldata[] } */
 function toAvnuCalls(calls: GaslessCall[]) {
   return calls.map(c => ({
-    to: c.contractAddress,
+    to:       c.contractAddress,
     selector: hash.getSelectorFromName(c.entrypoint),
-    calldata: c.calldata,
+    calldata: c.calldata.map(toHex),
   }));
 }
 
@@ -71,9 +77,11 @@ export async function executeGasless(
 
     // 2. User sign typed data — wallet popup, tanpa gas
     const signature = await account.signMessage(typed_data);
-    const sigArray = Array.isArray(signature)
-      ? signature.map(String)
-      : [String(signature.r), String(signature.s)];
+    const sigArray = (
+      Array.isArray(signature)
+        ? signature.map(String)
+        : [String(signature.r), String(signature.s)]
+    ).map(toHex); // AVNU requires hex strings, not decimal
 
     // 3. Execute — AVNU relay tx, bayar gas sendiri
     const execResult = await paymasterRpc("paymaster_executeTransaction", {
@@ -91,7 +99,7 @@ export async function executeGasless(
     const txHash = execResult.transaction_hash ?? execResult.transactionHash;
     return { transaction_hash: txHash, gasless: true };
   } catch (err) {
-    console.warn("⚡ Gasless failed, fallback to normal execute:", err);
+    console.warn("⚡ Gasless failed (reason below) — fallback to normal execute:", err);
     const result = await account.execute(calls);
     return { transaction_hash: result.transaction_hash, gasless: false };
   }

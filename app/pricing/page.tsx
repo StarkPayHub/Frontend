@@ -3,18 +3,11 @@
 import { Navbar } from "@/components/Navbar";
 import { ClaimUSDC } from "@/components/ClaimUSDC";
 import { SubscribeButton } from "@/components/SubscribeButton";
-import { PricingCardSkeleton } from "@/components/Skeleton";
 import { useAccount } from "@starknet-react/core";
 import { useMySubscriptions } from "@/hooks/useMySubscriptions";
-import { usePlans } from "@/hooks/usePlans";
+import { PLANS } from "@/lib/constants";
 
 /* ── Format helpers ─────────────────────────────────────────────────────────── */
-function formatPrice(raw: bigint): string {
-  if (raw === 0n) return "Free";
-  const dollars = Number(raw) / 1_000_000;
-  return `$${dollars % 1 === 0 ? dollars.toFixed(0) : dollars.toFixed(2)}`;
-}
-
 function formatInterval(secs: number): string {
   if (secs <= 0) return "—";
   const days = Math.round(secs / 86400);
@@ -45,49 +38,20 @@ const ORB_CFG = [
     cardBg: "rgba(4,12,10,0.82)", cardBorder: "rgba(16,185,129,0.15)",
     accentColor: "rgba(16,185,129,0.5)", checkColor: "#34d399",
   },
-  {
-    color: "radial-gradient(circle, rgba(251,191,36,0.4) 0%, transparent 70%)",
-    size: 160, style: { top: -40, right: -20, animation: "orb-float-a 11s ease-in-out infinite" },
-    cardBg: "rgba(12,10,4,0.82)", cardBorder: "rgba(251,191,36,0.15)",
-    accentColor: "rgba(251,191,36,0.5)", checkColor: "#fbbf24",
-  },
 ];
-
-/* ── Generic plan features ──────────────────────────────────────────────────── */
-const COMMON_FEATURES = [
-  "Auto-renewal via keeper bot",
-  "On-chain USDC payments",
-  "Cancel anytime",
-  "Sepolia testnet",
-];
-
-function getPlanFeatures(planId: number): string[] {
-  if (typeof window === "undefined") return COMMON_FEATURES;
-  try {
-    const raw = localStorage.getItem(`starkpay_features_${planId}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch {}
-  return COMMON_FEATURES;
-}
 
 export default function PricingPage() {
   const { status } = useAccount();
-  const isInitialising = status === "reconnecting";
   const { subscriptions } = useMySubscriptions();
-  const { plans, isLoading: plansLoading } = usePlans();
 
-  const activePlans = plans.filter(p => p.active);
-  const isLoading = isInitialising || plansLoading;
+  const isLoading = status === "reconnecting";
 
   function getSubForPlan(planId: number) {
     return subscriptions.find(s => s.planId === planId && s.active && !s.isExpired);
   }
 
   // Middle card gets highlight treatment
-  const highlightIdx = activePlans.length > 1 ? Math.floor(activePlans.length / 2) : 0;
+  const highlightIdx = Math.floor(PLANS.length / 2);
 
   return (
     <div className="min-h-screen" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(60,20,120,0.3) 0%, rgba(4,2,18,1) 60%)", backgroundColor: "#04020f" }}>
@@ -123,19 +87,13 @@ export default function PricingPage() {
         </div>
 
         {/* Cards */}
-        <div className={`grid grid-cols-1 gap-5 items-center ${activePlans.length === 2 ? "md:grid-cols-2" : activePlans.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-1 max-w-sm mx-auto"}`}>
+        <div className="grid grid-cols-1 gap-5 items-center md:grid-cols-3">
           {isLoading
-            ? [1, 2, 3].map(i => <PricingCardSkeleton key={i} />)
-            : activePlans.length === 0
-            ? (
-              <div className="col-span-3 text-center py-20">
-                <p style={{ color: "rgba(161,161,170,0.4)", fontSize: 14 }}>No active plans available yet.</p>
-              </div>
-            )
-            : activePlans.map((plan, idx) => {
+            ? [1, 2, 3].map(i => <div key={i} style={{ height: 400, borderRadius: 22, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", animation: "pulse 2s ease-in-out infinite" }} />)
+            : PLANS.map((plan, idx) => {
                 const orb = ORB_CFG[idx % ORB_CFG.length];
-                const isHighlight = idx === highlightIdx && activePlans.length > 1;
-                const priceDisplay = formatPrice(plan.price);
+                const isHighlight = idx === highlightIdx;
+                const priceDisplay = plan.priceDisplay;
                 const intervalLabel = formatInterval(plan.interval);
                 const sub = getSubForPlan(plan.id);
 
@@ -204,7 +162,7 @@ export default function PricingPage() {
 
                         {/* Features */}
                         <ul className="space-y-2.5 mb-7">
-                          {getPlanFeatures(plan.id).map(f => (
+                          {[...plan.features, `Renews ${intervalLabel.toLowerCase()}`].map(f => (
                             <li key={f} className="flex items-start gap-2.5 text-sm">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={orb.checkColor}
                                 strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
@@ -213,15 +171,6 @@ export default function PricingPage() {
                               <span style={{ color: isHighlight ? "rgba(255,255,255,0.85)" : "rgba(161,161,170,0.8)" }}>{f}</span>
                             </li>
                           ))}
-                          <li className="flex items-start gap-2.5 text-sm">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={orb.checkColor}
-                              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            <span style={{ color: isHighlight ? "rgba(255,255,255,0.85)" : "rgba(161,161,170,0.8)" }}>
-                              Renews {intervalLabel.toLowerCase()}
-                            </span>
-                          </li>
                         </ul>
 
                         {/* CTA */}

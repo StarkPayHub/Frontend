@@ -7,9 +7,11 @@ import { useAccount } from "@starknet-react/core";
 import { useState, useEffect, useRef } from "react";
 import { useMySubscriptions } from "@/hooks/useMySubscriptions";
 
+// Desktop nav links (center) — tanpa Home karena logo sudah jadi Home
 const links = [
-  { href: "/pricing",   label: "Pricing"   },
-  { href: "/demo",      label: "Demo"      },
+  { href: "/",        label: "Home"    },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/demo",    label: "Demo"    },
 ];
 
 export function Navbar() {
@@ -54,8 +56,10 @@ export function Navbar() {
   /* close menu on route change */
   useEffect(() => { setMenuOpen(false); }, [pathname]);
 
+  // Mobile burger: Home + semua links + Dashboard (kalau ada)
   const allMenuLinks = [
-    ...links,
+    { href: "/", label: "Home" },
+    ...links.filter(l => l.href !== "/"),
     ...(isConnected && hasActiveSub ? [{ href: "/dashboard", label: "Dashboard" }] : []),
   ];
 

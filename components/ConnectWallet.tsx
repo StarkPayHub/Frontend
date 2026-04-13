@@ -248,7 +248,15 @@ export function ConnectWallet() {
           <p className="text-[12px] text-zinc-600 leading-relaxed">
             New to Starknet?{" "}
             <a
-              href="https://chromewebstore.google.com/detail/ready-x/dlcobpjiigpikoobohmabehhmhfoodbb"
+              href={(() => {
+                if (typeof navigator === "undefined") return "https://www.argent.xyz/argent-x";
+                const ua = navigator.userAgent;
+                if (/android/i.test(ua))
+                  return "https://play.google.com/store/apps/details?id=im.argent.contractwalletclient";
+                if (/iphone|ipad|ipod/i.test(ua))
+                  return "https://apps.apple.com/app/argent-x/id6468873239";
+                return "https://chromewebstore.google.com/detail/ready-x/dlcobpjiigpikoobohmabehhmhfoodbb";
+              })()}
               target="_blank"
               rel="noopener noreferrer"
               className="text-violet-400 hover:text-violet-300 transition-colors"
