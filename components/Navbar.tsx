@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { ConnectWallet } from "./ConnectWallet";
 import { useAccount } from "@starknet-react/core";
 import { useState, useEffect } from "react";
+import { useMySubscriptions } from "@/hooks/useMySubscriptions";
 
 
 const links = [
@@ -17,8 +18,11 @@ const links = [
 export function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
-
   const { status } = useAccount();
+  const { subscriptions } = useMySubscriptions();
+
+  const isConnected = status === "connected";
+  const hasActiveSub = subscriptions.some(s => s.active && !s.isExpired);
 
   /* scroll shadow */
   useEffect(() => {
@@ -76,11 +80,50 @@ export function Navbar() {
         </div>
 
         {/* ── Right CTA ── */}
-        <ConnectWallet />
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+
+          {/* Dashboard button — hanya tampil kalau connected + punya active subscription */}
+          {isConnected && hasActiveSub && (
+            <Link href="/dashboard"
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "7px 16px", borderRadius: 10, textDecoration: "none",
+                fontSize: 13, fontWeight: 600, fontFamily: "'Syne',sans-serif",
+                color: pathname === "/dashboard" ? "#c4b5fd" : "rgba(196,181,253,0.75)",
+                background: pathname === "/dashboard"
+                  ? "rgba(139,92,246,0.2)"
+                  : "rgba(139,92,246,0.08)",
+                border: "1px solid rgba(139,92,246,0.22)",
+                transition: "all 0.15s",
+                whiteSpace: "nowrap",
+              }}
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = "rgba(139,92,246,0.2)";
+                el.style.color = "#c4b5fd";
+                el.style.borderColor = "rgba(139,92,246,0.4)";
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = pathname === "/dashboard" ? "rgba(139,92,246,0.2)" : "rgba(139,92,246,0.08)";
+                el.style.color = pathname === "/dashboard" ? "#c4b5fd" : "rgba(196,181,253,0.75)";
+                el.style.borderColor = "rgba(139,92,246,0.22)";
+              }}
+            >
+              {/* Grid icon */}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+              </svg>
+              Dashboard
+            </Link>
+          )}
+
+          <ConnectWallet />
+        </div>
 
       </nav>
 
     </div>
   );
 }
-

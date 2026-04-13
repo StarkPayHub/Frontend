@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAccount } from "@starknet-react/core";
 import { STARKPAY_ADDRESS, MOCK_USDC_ADDRESS } from "@/lib/contracts";
+import { executeGasless } from "@/lib/gasless";
 
 interface SubscribeButtonProps {
   planId: number;
@@ -42,8 +43,8 @@ export function SubscribeButton({
     if (!account) return;
     setLoading(true);
     try {
-      const result = await account.execute(calls);
-      setTxHash(result.transaction_hash);
+      const { transaction_hash } = await executeGasless(account, calls);
+      setTxHash(transaction_hash);
     } catch (err) {
       console.error("Subscribe failed:", err);
     } finally {

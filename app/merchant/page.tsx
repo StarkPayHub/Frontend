@@ -19,6 +19,7 @@ function addrEq(a: string | undefined, b: string | undefined): boolean {
 }
 import { useSubscriptionEvents, useWithdrawalEvents, useRenewalEvents } from "@/hooks/useContractEvents";
 import { buildRevenueGroups, exportExcel, exportPdf, type GroupBy } from "@/lib/exportRevenue";
+import { executeGasless } from "@/lib/gasless";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -285,9 +286,11 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
     if (!account) return;
     setWithdrawing(true);
     try {
-      const result = await account.execute([{ contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }]);
-      setTxHash(result.transaction_hash);
-      setToast({ message: "Withdrawal submitted — funds on the way!", type: "success" });
+      const { transaction_hash, gasless } = await executeGasless(account, [
+        { contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }
+      ]);
+      setTxHash(transaction_hash);
+      setToast({ message: `Withdrawal submitted${gasless ? " (gasless ⚡)" : ""} — funds on the way!`, type: "success" });
       setTimeout(() => refetch(), 3000);
     } catch (err) {
       console.error("Withdraw failed:", err);
@@ -564,12 +567,12 @@ function SectionPlans({ account, address }: { account: any; address?: string }) 
     try {
       const nameFelt = shortString.encodeShortString(name.trim());
       const priceUsdc = BigInt(Math.round(Number(price) * 1_000_000));
-      const result = await account.execute([{
+      const { transaction_hash, gasless } = await executeGasless(account, [{
         contractAddress: STARKPAY_ADDRESS,
         entrypoint: "create_plan",
         calldata: [nameFelt, priceUsdc.toString(), "0", intervalSec.toString()],
       }]);
-      setToast({ message: `Plan "${name}" created! TX: ${result.transaction_hash.slice(0, 14)}…`, type: "success" });
+      setToast({ message: `Plan "${name}" created${gasless ? " (gasless ⚡)" : ""}! TX: ${transaction_hash.slice(0, 14)}…`, type: "success" });
       setShowForm(false);
       setName("");
       setPrice("");
@@ -826,9 +829,11 @@ function SectionWithdrawals({ account, address }: { account: any; address?: stri
     if (!account) return;
     setWithdrawing(true);
     try {
-      const result = await account.execute([{ contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }]);
-      setTxHash(result.transaction_hash);
-      setToast({ message: "Withdrawal submitted — funds on the way!", type: "success" });
+      const { transaction_hash, gasless } = await executeGasless(account, [
+        { contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }
+      ]);
+      setTxHash(transaction_hash);
+      setToast({ message: `Withdrawal submitted${gasless ? " (gasless ⚡)" : ""} — funds on the way!`, type: "success" });
       setTimeout(() => refetch(), 3000);
     } catch (err) {
       console.error("Withdraw failed:", err);
