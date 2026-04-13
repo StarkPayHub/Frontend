@@ -18,8 +18,8 @@ importers:
         specifier: ^3.7.4
         version: 3.7.4(bufferutil@4.1.0)(get-starknet-core@4.0.0)(react@18.3.1)(starknet@6.24.1)(typescript@5.9.3)(utf-8-validate@5.0.10)
       '@starkpay/sdk':
-        specifier: ^0.3.2
-        version: 0.3.2(bufferutil@4.1.0)(get-starknet-core@4.0.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)
+        specifier: ^0.3.3
+        version: 0.3.3(bufferutil@4.1.0)(get-starknet-core@4.0.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)
       get-starknet-core:
         specifier: ^4.0.0
         version: 4.0.0
@@ -1102,8 +1102,8 @@ packages:
       react: ^18.0
       starknet: ^6.11.0
 
-  '@starkpay/sdk@0.3.2':
-    resolution: {integrity: sha512-65doUKfzfzGpoNwHbYunAyECpwLg3c4Ndlr6/keoDfoBOc1D8e/FB+8OhNJeTVHonFoMs4vucBSeSD54qgQvVw==}
+  '@starkpay/sdk@0.3.3':
+    resolution: {integrity: sha512-6L5YeyOjhKTSfXz+LzssGeOkMqmkrSZFaa69cPKZsZDOQq//XZec9GRlez0tT1sozoQQmAy/k9pOgEJpBNbP+w==}
     peerDependencies:
       react: '>=18'
 
@@ -6083,7 +6083,7 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@starkpay/sdk@0.3.2(bufferutil@4.1.0)(get-starknet-core@4.0.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)':
+  '@starkpay/sdk@0.3.3(bufferutil@4.1.0)(get-starknet-core@4.0.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)':
     dependencies:
       '@starknet-io/get-starknet-core': 4.0.8
       '@starknet-react/chains': 3.1.3

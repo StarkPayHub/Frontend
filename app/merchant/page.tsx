@@ -256,6 +256,33 @@ function EmptyState({ icon, title, desc, action }: { icon: React.ReactNode; titl
 }
 
 // ── Status pill ────────────────────────────────────────────────────────────────
+function CopyId({ value }: { value: number }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(String(value));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <button onClick={copy} title="Copy Plan ID"
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "3px 10px", borderRadius: 6, cursor: "pointer",
+        background: copied ? "rgba(52,211,153,0.1)" : "rgba(139,92,246,0.1)",
+        border: `1px solid ${copied ? "rgba(52,211,153,0.3)" : "rgba(139,92,246,0.25)"}`,
+        fontSize: 12, fontFamily: "ui-monospace,'SF Mono',monospace",
+        color: copied ? "#34d399" : "#a78bfa", fontWeight: 600,
+        transition: "all 0.15s",
+      }}>
+      {value}
+      {copied
+        ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      }
+    </button>
+  );
+}
+
 function StatusPill({ status }: { status: string }) {
   const isActive = status === "Active";
   const isDraft  = status === "Draft";
@@ -505,7 +532,7 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={tableHead}>
-                {["Plan", "Price / mo", "Interval"].map(h => (
+                {["Plan ID", "Plan", "Price / mo", "Interval"].map(h => (
                   <th key={h} style={{ padding: "12px 24px", textAlign: "left", fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
@@ -513,6 +540,7 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
             <tbody>
               {myPlans.map(plan => (
                 <tr key={plan.id} style={tableRow}>
+                  <td style={{ padding: "14px 24px" }}><CopyId value={plan.id} /></td>
                   <td style={{ padding: "14px 24px", fontSize: 14, color: "#fff" }}>{plan.name || `Plan #${plan.id}`}</td>
                   <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#34d399" }}>{usdcDisplay(plan.price)}</td>
                   <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.6)" }}>{Math.round(plan.interval / 86400)}d</td>
@@ -618,7 +646,7 @@ function SectionPlans({ account, address }: { account: any; address?: string }) 
       // Wait for confirmation then save features
       await provider.waitForTransaction(transaction_hash);
       savePlanFeatures(newPlanId, features);
-      setToast({ message: `Plan "${name}" created${gasless ? " (gasless ⚡)" : ""}! TX: ${transaction_hash.slice(0, 14)}…`, type: "success" });
+      setToast({ message: `Plan "${name}" created! Plan ID: ${newPlanId}${gasless ? " ⚡ gasless" : ""}`, type: "success" });
       setShowForm(false);
       setName(""); setPrice(""); setIntervalSec(2592000); setFeatures(DEFAULT_FEATURES);
     } catch (err: any) {
@@ -754,7 +782,7 @@ function SectionPlans({ account, address }: { account: any; address?: string }) 
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={tableHead}>
-                {["Plan Name", "Price", "Interval", "Status"].map(h => (
+                {["Plan ID", "Plan Name", "Price", "Interval", "Status"].map(h => (
                   <th key={h} style={{ padding: "12px 24px", textAlign: "left", fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
@@ -762,6 +790,9 @@ function SectionPlans({ account, address }: { account: any; address?: string }) 
             <tbody>
               {myPlans.map(plan => (
                 <tr key={plan.id} style={tableRow}>
+                  <td style={{ padding: "14px 24px" }}>
+                    <CopyId value={plan.id} />
+                  </td>
                   <td style={{ padding: "14px 24px", fontSize: 14, color: "#fff", fontWeight: 500 }}>{plan.name || `Plan #${plan.id}`}</td>
                   <td style={{ padding: "14px 24px", fontSize: 13, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.6)" }}>{usdcDisplay(plan.price)} / mo</td>
                   <td style={{ padding: "14px 24px", fontSize: 13, color: "rgba(161,161,170,0.5)" }}>{Math.round(plan.interval / 86400)} days</td>
