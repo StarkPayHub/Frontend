@@ -84,8 +84,8 @@ const TIERS = [
       "Unlimited subscribers",
       "Auto-renewal via keeper bot",
       "Revenue dashboard + PDF export",
-      "Gasless subscribe untuk user",
-      "Interval: harian / mingguan / bulanan",
+      "Gasless subscribe for users",
+      "Interval: daily / weekly / monthly",
       "Priority support",
     ],
     cta: "Subscribe Pro",
@@ -107,8 +107,8 @@ const TIERS = [
       "Unlimited subscribers",
       "Auto-renewal via keeper bot",
       "Revenue dashboard + PDF export",
-      "Gasless subscribe untuk user",
-      "Custom interval (termasuk custom hari)",
+      "Gasless subscribe for users",
+      "Custom interval (including custom days)",
       "Dedicated support",
     ],
     cta: "Subscribe Enterprise",
@@ -146,11 +146,11 @@ export default function MerchantPricingPage() {
           MERCHANT TIER
         </div>
         <h1 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 800, lineHeight: 1.1, margin: "0 0 16px" }}>
-          Pilih Tier Merchant Kamu
+          Choose Your Merchant Tier
         </h1>
         <p style={{ fontSize: 15, color: "rgba(161,161,170,0.6)", maxWidth: 480, margin: "0 auto 24px" }}>
-          Tier menentukan berapa subscription plan yang bisa kamu buat untuk users.
-          Semakin tinggi tier, semakin banyak plan yang bisa dibuat.
+          Your tier determines how many subscription plans you can create for users.
+          Higher tiers unlock more plans.
         </p>
 
         {/* Testnet USDC claim */}
@@ -163,7 +163,7 @@ export default function MerchantPricingPage() {
         {/* Current tier badge */}
         {address && (
           <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "8px 16px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "0.5px solid rgba(255,255,255,0.08)" }}>
-            <span style={{ fontSize: 13, color: "rgba(161,161,170,0.5)" }}>Tier aktif:</span>
+            <span style={{ fontSize: 13, color: "rgba(161,161,170,0.5)" }}>Active tier:</span>
             <span style={{
               fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 99,
               background: currentTier === "pro" ? "rgba(124,58,237,0.2)" : currentTier === "enterprise" ? "rgba(251,191,36,0.15)" : currentTier === "starter" ? "rgba(52,211,153,0.12)" : "rgba(161,161,170,0.1)",
@@ -219,7 +219,7 @@ export default function MerchantPricingPage() {
                     {t.maxPlans === null ? "Unlimited" : `${t.maxPlans} plan`}
                   </p>
                   <p style={{ margin: "2px 0 0", fontSize: 11, color: "rgba(161,161,170,0.45)" }}>
-                    subscription plan yang bisa dibuat
+                    subscription plans allowed
                   </p>
                 </div>
 
@@ -240,7 +240,7 @@ export default function MerchantPricingPage() {
                     border: `1px solid ${t.color}`, color: t.color,
                     fontWeight: 600, fontSize: 13, textDecoration: "none",
                   }}>
-                    Tier Aktif — Ke Dashboard
+                    Active Tier — Go to Dashboard
                   </Link>
                 ) : t.planId !== null ? (
                   <SubscribeButton
@@ -265,10 +265,10 @@ export default function MerchantPricingPage() {
         {/* Info footer */}
         <div style={{ marginTop: 48, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
           {[
-            { label: "Interval Didukung", value: "Harian · Mingguan · Bulanan · Tahunan · Custom" },
-            { label: "Limit Bisa Diubah", value: "Owner StarkPay bisa update limit kapan saja tanpa redeploy contract" },
-            { label: "On-chain Enforcement", value: "Limit di-enforce di smart contract — tidak bisa di-bypass" },
-            { label: "Gasless Subscribe", value: "User bayar 0 gas saat subscribe (Pro & Enterprise)" },
+            { label: "Supported Intervals", value: "Daily · Weekly · Monthly · Yearly · Custom" },
+            { label: "Adjustable Limits", value: "StarkPay owner can update plan limits anytime without redeploying" },
+            { label: "On-chain Enforcement", value: "Limits are enforced at the smart contract level — cannot be bypassed" },
+            { label: "Gasless Subscribe", value: "Users pay 0 gas when subscribing (Pro & Enterprise)" },
           ].map(info => (
             <div key={info.label} style={{ padding: "18px 20px", background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 14 }}>
               <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 600, color: "rgba(161,161,170,0.5)", fontFamily: "ui-monospace,monospace", textTransform: "uppercase", letterSpacing: "0.08em" }}>{info.label}</p>

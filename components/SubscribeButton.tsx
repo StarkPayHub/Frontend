@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAccount } from "@starknet-react/core";
 import { STARKPAY_ADDRESS, MOCK_USDC_ADDRESS } from "@/lib/contracts";
 
@@ -23,7 +24,9 @@ export function SubscribeButton({
 }: SubscribeButtonProps) {
   const [loading, setLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const { account, status } = useAccount();
+  const router = useRouter();
 
   const calls = [
     {
@@ -44,6 +47,7 @@ export function SubscribeButton({
     try {
       const result = await account.execute(calls);
       setTxHash(result.transaction_hash);
+      setCountdown(3);
     } catch (err) {
       console.error("Subscribe failed:", err);
     } finally {
@@ -51,13 +55,23 @@ export function SubscribeButton({
     }
   }
 
+  // Countdown → redirect to dashboard
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown === 0) { router.push("/dashboard"); return; }
+    const t = setTimeout(() => setCountdown(c => (c ?? 1) - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown, router]);
+
   // Just subscribed via this session
   if (txHash) {
     return (
       <div className="w-full text-center space-y-2">
         <div className="flex items-center justify-center gap-2 text-emerald-400 font-medium text-sm">
-          <span>✓</span>
-          <span>Subscribed!</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span>Subscribed! Redirecting to dashboard in {countdown}s…</span>
         </div>
         <a
           href={`https://sepolia.voyager.online/tx/${txHash}`}

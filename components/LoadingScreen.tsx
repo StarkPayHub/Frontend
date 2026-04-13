@@ -54,6 +54,19 @@ export function LoadingScreen({ visible }: Props) {
         />
       </div>
 
+      {/* ── Brand name ── */}
+      <p style={{
+        fontFamily: "ui-monospace,'SF Mono',monospace",
+        fontSize: 13,
+        fontWeight: 700,
+        letterSpacing: "0.28em",
+        textTransform: "uppercase",
+        color: "rgba(196,181,253,0.75)",
+        marginTop: -16,
+      }}>
+        StarkPayHub
+      </p>
+
       {/* ── Progress bar ── */}
       <div style={{
         width: 120,

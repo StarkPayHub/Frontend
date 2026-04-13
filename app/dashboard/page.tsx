@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useAccount, useDisconnect } from "@starknet-react/core";
 import { ClaimUSDC } from "@/components/ClaimUSDC";
 import { ConnectWallet } from "@/components/ConnectWallet";
@@ -210,21 +211,50 @@ function Sidebar({ address, section, setSection }: { address?: string; section: 
           </button>
         </div>
       )}
-      {confirmSignOut && (
+      {confirmSignOut && createPortal(
         <div
           onClick={() => setConfirmSignOut(false)}
-          style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)" }}
+          style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
         >
-          <div style={{ background: "rgba(14,10,32,0.98)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "24px", maxWidth: 280, width: "100%", textAlign: "center" }}
-            onClick={e => e.stopPropagation()}>
-            <p style={{ color: "#fff", fontWeight: 600, marginBottom: 8 }}>Disconnect wallet?</p>
-            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button onClick={() => setConfirmSignOut(false)} style={{ flex: 1, height: 40, borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => { disconnect(); setConfirmSignOut(false); router.push("/"); }} style={{ flex: 1, height: 40, borderRadius: 10, border: "none", background: "rgba(239,68,68,0.15)", color: "#f87171", fontWeight: 600, cursor: "pointer" }}>Disconnect</button>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "rgba(18,12,40,0.96)",
+              border: "0.5px solid rgba(255,255,255,0.12)",
+              borderRadius: 20,
+              padding: "28px 24px 24px",
+              width: 300,
+              boxShadow: "0 32px 80px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.06) inset",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+            }}
+          >
+            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(239,68,68,0.1)", border: "0.5px solid rgba(239,68,68,0.2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+            </div>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em" }}>Disconnect wallet?</p>
+            <p style={{ margin: "2px 0 12px", fontSize: 13, color: "rgba(161,161,170,0.55)", textAlign: "center", lineHeight: 1.5 }}>
+              You will be signed out and returned to the home page.
+            </p>
+            <div style={{ width: "100%", height: "0.5px", background: "rgba(255,255,255,0.07)", margin: "4px 0" }} />
+            <div style={{ display: "flex", gap: 8, width: "100%", marginTop: 8 }}>
+              <button
+                onClick={() => setConfirmSignOut(false)}
+                style={{ flex: 1, height: 42, borderRadius: 12, border: "0.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.7)", fontWeight: 600, fontSize: 14, cursor: "pointer", transition: "background 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+              >Cancel</button>
+              <button
+                onClick={() => { disconnect(); setConfirmSignOut(false); router.push("/"); }}
+                style={{ flex: 1, height: 42, borderRadius: 12, border: "0.5px solid rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.12)", color: "#f87171", fontWeight: 700, fontSize: 14, cursor: "pointer", transition: "background 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.2)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
+              >Disconnect</button>
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </aside>
   );
 }

@@ -281,15 +281,15 @@ export default function Home() {
                   {/* step number badge — top right, large ghost */}
                   <div style={{
                     position: "absolute", top: 16, right: 20,
-                   
                     fontWeight: 800,
                     fontSize: "4.5rem",
                     lineHeight: 1,
-                    color: "transparent",
-                    WebkitTextStroke: "1px rgba(109,40,217,0.2)",
+                    color: "rgba(109,40,217,0.12)",
+                    WebkitTextStroke: "1.5px rgba(139,92,246,0.45)",
                     letterSpacing: "-0.05em",
                     userSelect: "none",
                     pointerEvents: "none",
+                    textShadow: "0 0 32px rgba(139,92,246,0.3)",
                   }}>
                     {s.n}
                   </div>
