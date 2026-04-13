@@ -248,7 +248,7 @@ export function ConnectWallet() {
           <p className="text-[12px] text-zinc-600 leading-relaxed">
             New to Starknet?{" "}
             <a
-              href="https://www.argent.xyz/argent-x"
+              href="https://chromewebstore.google.com/detail/ready-x/dlcobpjiigpikoobohmabehhmhfoodbb"
               target="_blank"
               rel="noopener noreferrer"
               className="text-violet-400 hover:text-violet-300 transition-colors"
