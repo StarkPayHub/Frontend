@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "@starknet-react/core";
 import { STARKPAY_ADDRESS, MOCK_USDC_ADDRESS } from "@/lib/contracts";
+import { executeGasless } from "@/lib/gasless";
 
 interface SubscribeButtonProps {
   planId: number;
