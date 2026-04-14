@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useProvider } from "@starknet-react/core";
 import { useAccount, useDisconnect } from "@starknet-react/core";
@@ -48,7 +48,7 @@ function KpiCard({ label, value, sub, subColor, orb, loading }: {
       background: "rgba(12,9,28,0.85)",
       border: "0.5px solid rgba(255,255,255,0.1)",
       backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
-      padding: "24px 24px 20px",
+      padding: "clamp(12px,3vw,24px) clamp(12px,3vw,24px) clamp(10px,2.5vw,20px)",
       boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
     }}>
       <div aria-hidden style={{
@@ -56,19 +56,19 @@ function KpiCard({ label, value, sub, subColor, orb, loading }: {
         background: orb.color, filter: "blur(38px)", top: -35, right: -25, pointerEvents: "none",
       }} />
       <div aria-hidden style={{
-        position: "absolute", bottom: 0, left: 24, right: 24, height: "1px",
+        position: "absolute", bottom: 0, left: "clamp(12px,3vw,24px)", right: "clamp(12px,3vw,24px)", height: "1px",
         background: `linear-gradient(90deg, transparent, ${orb.accent}, transparent)`,
       }} />
       <p style={{
-        fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace",
+        fontSize: "clamp(9px,2.5vw,11px)", fontFamily: "ui-monospace,'SF Mono',monospace",
         color: "rgba(161,161,170,0.5)", letterSpacing: "0.1em", textTransform: "uppercase",
-        marginBottom: 12, position: "relative",
+        marginBottom: "clamp(6px,2vw,12px)", position: "relative",
       }}>{label}</p>
-      <p style={{ fontSize: "2.5rem", fontWeight: 700, color: "#fff", lineHeight: 1, position: "relative" }}>{value}</p>
+      <p style={{ fontSize: "clamp(1.1rem,4vw,2.5rem)", fontWeight: 700, color: "#fff", lineHeight: 1, position: "relative", whiteSpace: "nowrap" }}>{value}</p>
       {sub && (
         <p style={{
-          fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace",
-          color: subColor ?? "rgba(161,161,170,0.4)", marginTop: 10, position: "relative",
+          fontSize: "clamp(9px,2.5vw,11px)", fontFamily: "ui-monospace,'SF Mono',monospace",
+          color: subColor ?? "rgba(161,161,170,0.4)", marginTop: "clamp(6px,2vw,10px)", position: "relative",
         }}>{sub}</p>
       )}
     </div>
@@ -1087,10 +1087,144 @@ function NotConnected() {
   );
 }
 
+// ── Mobile Drawer ──────────────────────────────────────────────────────────────
+function MobileDrawer({ address, section, setSection, isOpen, onClose }: {
+  address?: string;
+  section: Section;
+  setSection: (s: Section) => void;
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const { disconnect } = useDisconnect();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", fn);
+    return () => document.removeEventListener("keydown", fn);
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
+
+  const navItems: { label: string; key: Section; icon: React.ReactNode }[] = [
+    { label: "Revenue",     key: "revenue",     icon: IcoRevenue     },
+    { label: "My Plans",    key: "plans",       icon: IcoPlans       },
+    { label: "Subscribers", key: "subscribers", icon: IcoSubscribers },
+    { label: "Withdrawals", key: "withdrawals", icon: IcoWithdraw    },
+  ];
+
+  if (typeof window === "undefined") return null;
+
+  return createPortal(
+    <div className="md:hidden">
+      {/* Backdrop */}
+      <div onClick={onClose} style={{
+        position: "fixed", inset: 0, zIndex: 199,
+        background: "rgba(0,0,0,0.65)",
+        backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)",
+        opacity: isOpen ? 1 : 0,
+        pointerEvents: isOpen ? "auto" : "none",
+        transition: "opacity 0.25s",
+      }} />
+
+      {/* Drawer */}
+      <aside style={{
+        position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 200,
+        width: 265,
+        background: "rgba(8,6,22,0.98)",
+        borderRight: "0.5px solid rgba(255,255,255,0.08)",
+        backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+        transform: isOpen ? "translateX(0)" : "translateX(-100%)",
+        transition: "transform 0.28s cubic-bezier(.4,0,.2,1)",
+        display: "flex", flexDirection: "column",
+        padding: "20px 12px", overflowY: "auto",
+      }}>
+        {/* Logo + close */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 12px 20px", marginBottom: 4, borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}>
+          <Link href="/" onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-sm.png" alt="StarkPayHub" width={28} height={28} style={{ objectFit: "contain" }} />
+            <span style={{ fontWeight: 700, fontSize: 14, color: "rgba(255,255,255,0.9)" }}>StarkPayHub</span>
+          </Link>
+          <button onClick={onClose} style={{
+            width: 30, height: 30, borderRadius: 8, border: "0.5px solid rgba(255,255,255,0.1)",
+            background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)",
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Merchant nav */}
+        <p style={{ padding: "12px 14px 6px", fontSize: 10, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.35)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Merchant</p>
+        {navItems.map(item => {
+          const active = section === item.key;
+          return (
+            <button key={item.key} onClick={() => { setSection(item.key); onClose(); }}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px",
+                borderRadius: 10, background: active ? "rgba(124,58,237,0.12)" : "transparent",
+                border: "none", borderLeft: active ? "2px solid rgba(139,92,246,0.7)" : "2px solid transparent",
+                color: active ? "#fff" : "rgba(161,161,170,0.55)", fontSize: 14,
+                fontWeight: active ? 500 : 400, cursor: "pointer", textAlign: "left", transition: "all 0.15s",
+              }}>
+              <span style={{ color: active ? "#a78bfa" : "rgba(161,161,170,0.3)", flexShrink: 0 }}>{item.icon}</span>
+              {item.label}
+            </button>
+          );
+        })}
+
+        {/* User section */}
+        <p style={{ padding: "16px 14px 6px", fontSize: 10, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.35)", letterSpacing: "0.12em", textTransform: "uppercase", borderTop: "0.5px solid rgba(255,255,255,0.07)", marginTop: 8 }}>User</p>
+        <Link href="/dashboard" onClick={onClose}
+          style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, textDecoration: "none", color: "rgba(161,161,170,0.55)", fontSize: 14, borderLeft: "2px solid transparent" }}>
+          <span style={{ color: "rgba(161,161,170,0.3)", flexShrink: 0 }}>{IcoDash}</span>
+          My Subscriptions
+        </Link>
+
+        {/* Identity + disconnect */}
+        {address && (
+          <div style={{ marginTop: "auto", paddingTop: 16, borderTop: "0.5px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.08)" }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#34d399", flexShrink: 0, boxShadow: "0 0 6px rgba(52,211,153,0.8)", display: "block" }} />
+              <span style={{ fontFamily: "ui-monospace,'SF Mono',monospace", fontSize: 11.5, color: "rgba(161,161,170,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {address.slice(0, 8)}…{address.slice(-4)}
+              </span>
+            </div>
+            <button onClick={() => { disconnect(); onClose(); router.push("/"); }}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 14px", borderRadius: 10, background: "none", border: "none", color: "rgba(161,161,170,0.4)", fontSize: 12, cursor: "pointer", marginTop: 4, textAlign: "left", transition: "color 0.15s" }}
+              onMouseEnter={e => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.background = "rgba(239,68,68,0.05)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "rgba(161,161,170,0.4)"; e.currentTarget.style.background = "none"; }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Disconnect
+            </button>
+          </div>
+        )}
+      </aside>
+    </div>,
+    document.body
+  );
+}
+
+const SECTION_LABEL: Record<Section, string> = {
+  revenue: "Revenue",
+  plans: "My Plans",
+  subscribers: "Subscribers",
+  withdrawals: "Withdrawals",
+};
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function MerchantPage() {
   const { account, address, status } = useAccount();
   const [section, setSection] = useState<Section>("revenue");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isAuth = status === "connected";
   const displayId = address;
@@ -1101,12 +1235,42 @@ export default function MerchantPage() {
   return (
     <div className="min-h-screen flex" style={BG}>
       <Sidebar address={displayId} section={section} setSection={setSection} />
-      <main style={{ flex: 1, padding: 32, minWidth: 0 }}>
+      <main style={{ flex: 1, padding: "clamp(20px,4vw,32px) clamp(16px,4vw,32px)", minWidth: 0 }}>
+
+        {/* Mobile top bar */}
+        <div className="md:hidden" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+          <button
+            onClick={() => setSidebarOpen(true)}
+            style={{
+              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+              border: "1px solid rgba(139,92,246,0.2)",
+              background: sidebarOpen ? "rgba(139,92,246,0.12)" : "rgba(139,92,246,0.06)",
+              color: "rgba(196,181,253,0.9)", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background 0.15s",
+            }}
+            aria-label="Open menu"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>
+            </svg>
+          </button>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>{SECTION_LABEL[section]}</span>
+        </div>
+
         {section === "revenue"     && <SectionRevenue account={account} address={address} />}
         {section === "plans"       && <SectionPlans account={account} address={address} />}
         {section === "subscribers" && <SectionSubscribers address={address} />}
         {section === "withdrawals" && <SectionWithdrawals account={account} address={address} />}
       </main>
+
+      <MobileDrawer
+        address={displayId}
+        section={section}
+        setSection={setSection}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
     </div>
   );
 }

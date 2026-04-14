@@ -83,16 +83,16 @@ export function Navbar() {
         position: "relative",
       }}>
 
-        {/* ── Logo ── */}
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-sm.png" alt="StarkPayHub" width={38} height={38} style={{ display: "block", objectFit: "contain" }} />
-          {!isMobile && (
+        {/* ── Logo (desktop: kiri, mobile: kanan) ── */}
+        {!isMobile && (
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-sm.png" alt="StarkPayHub" width={38} height={38} style={{ display: "block", objectFit: "contain" }} />
             <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15, letterSpacing: "0.04em", color: "rgba(255,255,255,0.92)" }}>
               StarkPayHub
             </span>
-          )}
-        </Link>
+          </Link>
+        )}
 
         {/* ── Desktop nav links (center) ── */}
         {!isMobile && (
@@ -147,11 +147,9 @@ export function Navbar() {
             </>
           )}
 
-          {/* Mobile: ConnectWallet + Hamburger */}
+          {/* Mobile: Hamburger + ConnectWallet (kiri), Logo (kanan) */}
           {isMobile && (
             <>
-              <ConnectWallet />
-
               {/* Hamburger */}
               <div ref={menuRef} style={{ position: "relative" }}>
                 <button
@@ -179,7 +177,7 @@ export function Navbar() {
                 {/* Dropdown */}
                 {menuOpen && (
                   <div style={{
-                    position: "absolute", top: "calc(100% + 8px)", right: 0,
+                    position: "absolute", top: "calc(100% + 8px)", left: 0,
                     minWidth: 180, borderRadius: 14,
                     background: "rgba(12,8,32,0.97)",
                     border: "1px solid rgba(139,92,246,0.2)",
@@ -210,10 +208,20 @@ export function Navbar() {
                   </div>
                 )}
               </div>
+              <ConnectWallet />
             </>
           )}
 
         </div>
+
+        {/* ── Logo mobile (kanan) ── */}
+        {isMobile && (
+          <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-sm.png" alt="StarkPayHub" width={36} height={36} style={{ display: "block", objectFit: "contain" }} />
+          </Link>
+        )}
+
       </nav>
     </div>
   );
