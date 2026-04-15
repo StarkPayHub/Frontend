@@ -12,7 +12,7 @@
     "@privy-io/react-auth": "^3.19.0",
     "@starknet-react/chains": "^3.0.0",
     "@starknet-react/core": "^3.7.4",
-    "@starkpay/sdk": "^0.3.3",
+    "@starkpay/sdk": "^0.3.4",
     "get-starknet-core": "^4.0.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
