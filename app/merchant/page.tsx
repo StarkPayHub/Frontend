@@ -624,6 +624,8 @@ function SectionPlans({ account, address }: { account: any; address?: string }) 
   const [features, setFeatures] = useState(DEFAULT_FEATURES);
   const [creating, setCreating] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [createdPlan, setCreatedPlan] = useState<{ id: number; name: string; features: string[] } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const { provider } = useProvider();
   const { plans, isLoading } = usePlans();
@@ -645,8 +647,9 @@ function SectionPlans({ account, address }: { account: any; address?: string }) 
       }]);
       // Wait for confirmation then save features
       await provider.waitForTransaction(transaction_hash);
+      const featureLines = features.split("\n").map((l: string) => l.trim()).filter(Boolean);
       savePlanFeatures(newPlanId, features);
-      setToast({ message: `Plan "${name}" created! Plan ID: ${newPlanId}${gasless ? " ⚡ gasless" : ""}`, type: "success" });
+      setCreatedPlan({ id: newPlanId, name: name.trim(), features: featureLines });
       setShowForm(false);
       setName(""); setPrice(""); setIntervalSec(2592000); setFeatures(DEFAULT_FEATURES);
     } catch (err: any) {
@@ -658,8 +661,95 @@ function SectionPlans({ account, address }: { account: any; address?: string }) 
 
   const inputStyle = { padding: "10px 14px", borderRadius: 10, fontSize: 13, color: "#fff", background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.12)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" as const };
 
+  function buildSnippet(plan: { id: number; name: string; features: string[] }) {
+    const featuresStr = plan.features.map(f => `  "${f}",`).join("\n");
+    return `export const PLAN_ID = BigInt("${plan.id}");\nexport const PLAN_FEATURES = [\n${featuresStr}\n];`;
+  }
+
+  function handleCopy() {
+    if (!createdPlan) return;
+    navigator.clipboard.writeText(buildSnippet(createdPlan));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+
+      {/* ── Plan Created Modal ── */}
+      {createdPlan && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999,
+          background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        }}>
+          <div style={{
+            width: "100%", maxWidth: 480, borderRadius: 20,
+            background: "rgba(12,8,32,0.98)", border: "1px solid rgba(139,92,246,0.3)",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.8)",
+            overflow: "hidden",
+          }}>
+            {/* Top bar */}
+            <div style={{ height: 3, background: "linear-gradient(90deg,#7c3aed,#a78bfa,#34d399)" }} />
+            <div style={{ padding: "24px 24px 20px" }}>
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 22 }}>🎉</span>
+                <div>
+                  <p style={{ color: "#fff", fontWeight: 700, fontSize: 16, margin: 0 }}>
+                    Plan &ldquo;{createdPlan.name}&rdquo; created!
+                  </p>
+                  <p style={{ color: "rgba(161,161,170,0.5)", fontSize: 12, margin: "2px 0 0", fontFamily: "monospace" }}>
+                    Plan ID: {createdPlan.id}
+                  </p>
+                </div>
+              </div>
+
+              {/* Instruction */}
+              <p style={{ fontSize: 13, color: "rgba(161,161,170,0.6)", marginBottom: 10 }}>
+                Copy this to your <code style={{ color: "#a78bfa", background: "rgba(139,92,246,0.1)", padding: "1px 6px", borderRadius: 4 }}>lib/starkpay.ts</code>:
+              </p>
+
+              {/* Code snippet */}
+              <div style={{
+                background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 10, padding: "14px 16px", marginBottom: 16,
+              }}>
+                <pre style={{ margin: 0, fontSize: 13, color: "#e2e8f0", fontFamily: "ui-monospace,'SF Mono',monospace", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                  {buildSnippet(createdPlan)}
+                </pre>
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={handleCopy}
+                  style={{
+                    flex: 1, padding: "10px 0", borderRadius: 10,
+                    background: copied ? "rgba(52,211,153,0.2)" : "rgba(139,92,246,0.2)",
+                    color: copied ? "#34d399" : "#a78bfa",
+                    fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "all 0.2s",
+                    border: `1px solid ${copied ? "rgba(52,211,153,0.3)" : "rgba(139,92,246,0.3)"}`,
+                  }}
+                >
+                  {copied ? "✓ Copied!" : "Copy to clipboard"}
+                </button>
+                <button
+                  onClick={() => setCreatedPlan(null)}
+                  style={{
+                    padding: "10px 20px", borderRadius: 10,
+                    background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                    color: "rgba(161,161,170,0.7)", fontWeight: 500, fontSize: 13, cursor: "pointer",
+                  }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
         <div>
           <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>My Plans</h1>
