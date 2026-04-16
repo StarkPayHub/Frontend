@@ -31,6 +31,14 @@ You need a small amount of ETH or STRK on Sepolia to pay gas fees.
 
 → Claim free testnet tokens at [faucet.starknet.io](https://faucet.starknet.io)
 
+### 3. Get gas tokens
+
+You need a small amount of ETH or STRK on Sepolia to pay gas fees.
+
+![Starknet Testnet Faucet](../images/faucet-starknet.png)
+
+→ Claim free testnet tokens at [faucet.starknet.io](https://faucet.starknet.io)
+
 ### 4. Connect to StarkPayHub
 
 Click **Connect Wallet** in the top-right corner of [starkpayhub.vercel.app](https://starkpayhub.vercel.app). Your wallet extension will prompt you to approve the connection.

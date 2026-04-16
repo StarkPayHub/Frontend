@@ -6,6 +6,8 @@ StarkPayHub runs on **Starknet Sepolia Testnet**. Payments use a MockUSDC token 
 
 ## Option 1 — Use the Frontend (Easiest)
 
+![Pricing Page — Claim 100 Free USDC](../images/pricing-claim-usdc.png)
+
 1. Go to [starkpayhub.vercel.app/pricing](https://starkpayhub.vercel.app/pricing)
 2. Connect your wallet
 3. Click **"Testnet: Claim 100 Free USDC →"**

@@ -6,6 +6,8 @@ Merchants create subscription plans on-chain. Each plan has a name, price (in US
 
 ## Via the Merchant Dashboard (Recommended)
 
+![Merchant Dashboard](../images/merchant-connect.png)
+
 1. Go to [starkpayhub.vercel.app/merchant](https://starkpayhub.vercel.app/merchant)
 2. Connect your wallet
 3. Click **Create Plan**
