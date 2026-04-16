@@ -98,6 +98,7 @@ export function ConnectWallet() {
   const [copied, setCopied] = useState(false);
   const [claimingUsdc, setClaimingUsdc] = useState(false);
   const [usdcClaimed, setUsdcClaimed] = useState(false);
+  const [activeConnector, setActiveConnector] = useState<typeof connectors[0] | null>(null);
 
   const handleCopy = () => {
     if (!address) return;
@@ -170,7 +171,7 @@ export function ConnectWallet() {
 
   const handleConnect = async (connector: typeof connectors[0]) => {
     setConnecting(connector.id);
-    try { connect({ connector }); }
+    try { connect({ connector }); setActiveConnector(connector); }
     finally { setConnecting(null); setOpen(false); }
   };
 
@@ -213,12 +214,42 @@ export function ConnectWallet() {
           }}>
             {/* Wallet info */}
             <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-              <p style={{ fontSize: 11, color: "rgba(161,161,170,0.5)", fontFamily: "monospace", letterSpacing: "0.06em", marginBottom: 4 }}>
+              <p style={{ fontSize: 11, color: "rgba(161,161,170,0.5)", fontFamily: "monospace", letterSpacing: "0.06em", marginBottom: 6 }}>
                 CONNECTED WALLET
               </p>
-              <p style={{ fontSize: 13, color: "rgba(196,181,253,0.85)", fontFamily: "ui-monospace,'SF Mono',monospace", marginBottom: 8 }}>
-                {address.slice(0,10)}…{address.slice(-6)}
-              </p>
+              {/* Address row: logo + address + inline copy */}
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+                {activeConnector?.icon ? (
+                  <img src={activeConnector.icon} alt="" width={18} height={18}
+                    style={{ borderRadius: 5, flexShrink: 0, objectFit: "contain" }} />
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(139,92,246,0.7)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <rect x="2" y="5" width="20" height="14" rx="3"/>
+                    <path d="M2 10h20"/>
+                  </svg>
+                )}
+                <span style={{ fontSize: 13, color: "rgba(196,181,253,0.85)", fontFamily: "ui-monospace,'SF Mono',monospace", flex: 1 }}>
+                  {address.slice(0,10)}…{address.slice(-6)}
+                </span>
+                <button
+                  onClick={handleCopy}
+                  title="Copy address"
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4, color: copied ? "rgba(52,211,153,0.9)" : "rgba(161,161,170,0.5)", transition: "color 0.15s", flexShrink: 0 }}
+                  onMouseEnter={e => { e.currentTarget.style.color = copied ? "rgba(52,211,153,0.9)" : "rgba(196,181,253,0.7)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = copied ? "rgba(52,211,153,0.9)" : "rgba(161,161,170,0.5)"; }}
+                >
+                  {copied ? (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  ) : (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  )}
+                </button>
+              </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
                   <span style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em" }}>
@@ -236,34 +267,9 @@ export function ConnectWallet() {
             </div>
             {/* Actions */}
             <div style={{ padding: "6px" }}>
-              {/* Copy address */}
-              <button
-                onClick={handleCopy}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", gap: 8,
-                  padding: "9px 10px", borderRadius: 8, background: "none", border: "none",
-                  color: copied ? "rgba(52,211,153,0.9)" : "rgba(196,181,253,0.8)", fontSize: 13, cursor: "pointer",
-                  fontFamily: "'Syne',sans-serif", transition: "background 0.15s, color 0.15s", textAlign: "left",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.08)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "none"; }}
-              >
-                {copied ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                  </svg>
-                )}
-                {copied ? "Copied!" : "Copy address"}
-              </button>
-
-              {/* Claim Faucet */}
+              {/* Claim Faucet STRK */}
               <a
-                href={`https://faucet.starknet.io/${address}`}
+                href="https://faucet.starknet.io"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -276,10 +282,10 @@ export function ConnectWallet() {
                 onMouseLeave={e => { e.currentTarget.style.background = "none"; }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-                  <path d="M12 6v6l4 2"/>
+                  <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                  <path d="M8 12h8M12 8l4 4-4 4"/>
                 </svg>
-                Claim faucet ETH
+                Claim faucet STRK
               </a>
 
               {/* Claim USDC */}

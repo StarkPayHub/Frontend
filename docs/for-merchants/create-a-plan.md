@@ -27,17 +27,17 @@ Your plan appears on the pricing page immediately after the transaction is confi
 ## Via starkli CLI
 
 ```bash
-# Create plan: name="Pro", price=15 USDC, interval=30 days (2592000 seconds)
+# Create plan: name="Pro", price=20 USDC, interval=30 days (2592000 seconds)
 starkli invoke \
-  0x058a1e8058620d285047c7ee3df15804898070e6788fbffe004a29ffa554aa2c \
+  0x03038926f97a7410fcd8630938080c6e2de65a1e7c0cfedcfaeffbebbae11633 \
   create_plan \
   0x50726f \
-  u256:15000000 \
+  u256:20000000 \
   2592000
 
 # Arguments:
 #   name     = felt252 encoded string ("Pro" = 0x50726f)
-#   price    = u256 in USDC micro-units (15 USDC = 15_000_000)
+#   price    = u256 in USDC micro-units (20 USDC = 20_000_000)
 #   interval = seconds (86400=daily, 604800=weekly, 2592000=monthly, 31536000=yearly)
 ```
 
@@ -72,7 +72,7 @@ See [Tier System](tier-system.md) for details.
 | Field | Type | Description |
 |---|---|---|
 | `name` | `felt252` | Short string (max 31 chars). Stored on-chain |
-| `price` | `u256` | USDC amount in micro-units (6 decimals). `$15 = 15_000_000` |
+| `price` | `u256` | USDC amount in micro-units (6 decimals). `$10 = 10_000_000`, `$20 = 20_000_000` |
 | `interval` | `u64` | Billing interval in seconds |
 | `active` | `bool` | Auto-set to `true` on creation. Can be deactivated |
 
