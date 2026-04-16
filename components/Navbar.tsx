@@ -11,7 +11,7 @@ import { useMySubscriptions } from "@/hooks/useMySubscriptions";
 const links = [
   { href: "/",        label: "Home"    },
   { href: "/pricing", label: "Pricing" },
-  { href: "/demo",    label: "Demo"    },
+  { href: "/demo",    label: "How To Use"    },
 ];
 
 export function Navbar() {

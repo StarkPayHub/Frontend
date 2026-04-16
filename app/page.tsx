@@ -446,7 +446,7 @@ export default function Home() {
             <div className="flex gap-8">
               {[
                 { label: "GitHub",  href: "https://github.com/starkpayhub/starkpayhub" },
-                { label: "Docs",    href: "https://github.com/starkpayhub/starkpayhub/blob/main/README.md" },
+                { label: "Docs",    href: "https://starkpayhub.gitbook.io/starkpayhub-docs" },
                 { label: "Voyager", href: "https://sepolia.voyager.online" },
               ].map(({ label: l, href }) => (
                 <a key={l} href={href} target="_blank" rel="noopener noreferrer"
