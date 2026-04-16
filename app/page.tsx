@@ -434,13 +434,13 @@ export default function Home() {
         <FlowDivider />
 
         {/* ══════ FOOTER ══════ */}
-        <footer className="relative z-10 px-6 py-8" style={{ background: "rgba(0,0,0,0.95)" }}>
+        <footer className="relative z-10 px-6 py-8" style={{ borderTop: "1px solid rgba(109,40,217,0.2)", background: "rgba(4,2,15,0.98)" }}>
           <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4"
             data-reveal="none" data-delay="0">
-            <span className="font-mono text-sm font-bold tracking-widest" style={{ color: "rgba(255,255,255,0.2)" }}>
+            <span className="font-mono text-sm font-bold tracking-widest" style={{ color: "rgba(196,181,253,0.85)" }}>
               STARKPAYHUB
             </span>
-            <span className="text-xs font-mono" style={{ color: "rgba(63,63,70,0.9)" }}>
+            <span className="text-xs font-mono" style={{ color: "rgba(161,161,170,0.7)" }}>
               © 2026 StarkPayHub — Built for Starknet Hackathon
             </span>
             <div className="flex gap-8">
@@ -451,9 +451,9 @@ export default function Home() {
               ].map(({ label: l, href }) => (
                 <a key={l} href={href} target="_blank" rel="noopener noreferrer"
                   className="text-xs font-mono tracking-wider uppercase transition-colors"
-                  style={{ color: "rgba(63,63,70,0.9)" }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "rgba(167,139,250,0.7)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(63,63,70,0.9)"; }}
+                  style={{ color: "rgba(161,161,170,0.7)" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "rgba(167,139,250,1)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(161,161,170,0.7)"; }}
                 >
                   {l}
                 </a>
