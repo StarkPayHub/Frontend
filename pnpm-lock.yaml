@@ -18,8 +18,8 @@ importers:
         specifier: ^3.7.4
         version: 3.7.4(bufferutil@4.1.0)(get-starknet-core@4.0.0)(react@18.3.1)(starknet@6.24.1)(typescript@5.9.3)(utf-8-validate@5.0.10)
       '@starkpay/sdk':
-        specifier: ^0.3.16
-        version: 0.3.16(bufferutil@4.1.0)(get-starknet-core@4.0.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+        specifier: ^0.3.21
+        version: 0.3.21(bufferutil@4.1.0)(get-starknet-core@4.0.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
       get-starknet-core:
         specifier: ^4.0.0
         version: 4.0.0
@@ -1118,8 +1118,8 @@ packages:
       react: ^18.0
       starknet: ^6.11.0
 
-  '@starkpay/sdk@0.3.16':
-    resolution: {integrity: sha512-jhkPAcmCo/DZpLDVKAWR947xYwSLENQNofSvM0miDmP7vPCVtozCCNLicve9xIqLY/6xRPnxhzN/l7BzycoOPQ==}
+  '@starkpay/sdk@0.3.21':
+    resolution: {integrity: sha512-gd9EABLfXlgvDnVILAjp+PxdbzylO0an0S6wDpDBKd0qAKWsPkYYE//KDZfIM8ypy5WxoPawIE4GS9VtNgWLlg==}
     hasBin: true
     peerDependencies:
       react: '>=18.0.0'
@@ -6343,7 +6343,7 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@starkpay/sdk@0.3.16(bufferutil@4.1.0)(get-starknet-core@4.0.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
+  '@starkpay/sdk@0.3.21(bufferutil@4.1.0)(get-starknet-core@4.0.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.29.0(zod@4.3.6)
       '@starknet-io/get-starknet-core': 4.0.8
@@ -6353,6 +6353,7 @@ snapshots:
       jspdf-autotable: 5.0.7(jspdf@4.2.1)
       react: 18.3.1
       starknet: 6.24.1
+      starknetkit: 2.3.3(bufferutil@4.1.0)(get-starknet-core@4.0.0)(react@18.3.1)(starknet@6.24.1)(typescript@5.9.3)(utf-8-validate@5.0.10)
       xlsx: 0.18.5
     transitivePeerDependencies:
       - '@cfworker/json-schema'

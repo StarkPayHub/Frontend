@@ -3,7 +3,7 @@ export const STARKNET_RPC =
 
 export const PLANS = [
   {
-    id: 1,
+    id: 4,
     name: "Starter",
     price: BigInt("10000000"), // 10 USDC (6 decimals)
     priceDisplay: "$10",

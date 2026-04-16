@@ -5,7 +5,7 @@ import { STARKPAY_ADDRESS } from "@/lib/contracts";
 import { STARKNET_RPC } from "@/lib/constants";
 
 // Block where the current StarkPay contract was deployed
-const DEPLOY_BLOCK = 8_540_000;
+const DEPLOY_BLOCK = 8_803_950;
 
 export interface SubscriptionEvent {
   user: string;

@@ -1,7 +1,7 @@
 export const STARKPAY_ADDRESS =
-  "0x058a1e8058620d285047c7ee3df15804898070e6788fbffe004a29ffa554aa2c";
+  "0x04cf20808f1a9db9a4da75eb59566416bba3f2db14821cdeb0e8d4852f31aa14";
 export const MOCK_USDC_ADDRESS =
-  "0x03f2e44f91a2994b1748473aebe2512a280a4ada60df57d31886d3faf95a0776";
+  "0x029b1a04e2ceb7ef124e0af044d3576b8c6210b8bc437e907b69d983d6ea87a9";
 
 export const starkpayAbi = [
   { type: "impl", name: "StarkPayImpl", interface_name: "starkpay_contracts::interfaces::IStarkPay" },
@@ -36,7 +36,7 @@ export const starkpayAbi = [
 export const mockUsdcAbi = [
   { type: "impl", name: "MockUSDCImpl", interface_name: "starkpay_contracts::interfaces::IMockUSDC" },
   { type: "struct", name: "core::integer::u256", members: [{ name: "low", type: "core::integer::u128" }, { name: "high", type: "core::integer::u128" }] },
-  { type: "interface", name: "starkpay_contracts::interfaces::IMockUSDC", items: [{ type: "function", name: "mint", inputs: [{ name: "to", type: "core::starknet::contract_address::ContractAddress" }, { name: "amount", type: "core::integer::u256" }], outputs: [], state_mutability: "external" }] },
+  { type: "interface", name: "starkpay_contracts::interfaces::IMockUSDC", items: [{ type: "function", name: "mint", inputs: [{ name: "to", type: "core::starknet::contract_address::ContractAddress" }, { name: "amount", type: "core::integer::u256" }], outputs: [], state_mutability: "external" }, { type: "function", name: "burn", inputs: [{ name: "amount", type: "core::integer::u256" }], outputs: [], state_mutability: "external" }] },
   { type: "impl", name: "ERC20MixinImpl", interface_name: "openzeppelin_token::erc20::interface::IERC20Mixin" },
   { type: "enum", name: "core::bool", variants: [{ name: "False", type: "()" }, { name: "True", type: "()" }] },
   {
