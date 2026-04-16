@@ -70,4 +70,6 @@ After cancellation, you retain access until the end of the current billing perio
 
 Your subscription status is visible on the pricing page — the "Subscribe" button changes to show your plan's next renewal date when you're active.
 
+![Active subscription badge](../images/subscription-active-badge.png)
+
 You can also check directly on Voyager by reading the contract state at the [StarkPay contract address](https://sepolia.voyager.online/contract/0x058a1e8058620d285047c7ee3df15804898070e6788fbffe004a29ffa554aa2c).

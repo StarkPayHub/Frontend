@@ -15,6 +15,9 @@ Merchants create subscription plans on-chain. Each plan has a name, price (in US
    - **Name** — e.g., "Pro", "Starter", "Enterprise"
    - **Price** — amount in USDC per billing period
    - **Interval** — Daily / Weekly / Monthly / Yearly
+
+![Create Plan form](../images/create-plan-form.png)
+
 5. Sign the transaction
 
 Your plan appears on the pricing page immediately after the transaction is confirmed.

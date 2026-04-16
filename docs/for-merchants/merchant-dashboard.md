@@ -2,7 +2,9 @@
 
 The merchant dashboard is available at [starkpayhub.vercel.app/merchant](https://starkpayhub.vercel.app/merchant). Connect your wallet to view your stats.
 
-![Merchant Dashboard — Connect Wallet](../images/dashboard-page.png)
+![Merchant Dashboard](../images/merchant-connect.png)
+
+![Merchant Dashboard — with data](../images/merchant-dashboard-data.png)
 
 ---
 

@@ -25,11 +25,7 @@ Download and install Argent X or Braavos from the Chrome Web Store. Follow the e
 
 Both wallets include Sepolia Testnet by default. Make sure you switch to **Sepolia** in the network selector (not Starknet Mainnet).
 
-### 3. Get gas tokens
-
-You need a small amount of ETH or STRK on Sepolia to pay gas fees.
-
-→ Claim free testnet tokens at [faucet.starknet.io](https://faucet.starknet.io)
+![Argent X — Starknet Sepolia network selected](../images/wallet-argent-network.png)
 
 ### 3. Get gas tokens
 
@@ -42,6 +38,8 @@ You need a small amount of ETH or STRK on Sepolia to pay gas fees.
 ### 4. Connect to StarkPayHub
 
 Click **Connect Wallet** in the top-right corner of [starkpayhub.vercel.app](https://starkpayhub.vercel.app). Your wallet extension will prompt you to approve the connection.
+
+![Wallet connect popup](../images/wallet-connect-popup.jpeg)
 
 ---
 
