@@ -4,6 +4,8 @@ StarkPayHub is an **on-chain subscription payment protocol** built on Starknet. 
 
 ![StarkPayHub — The Subscription Protocol for Web3](../images/landing-hero.png)
 
+> **Note:** The `@starkpay/sdk` is designed for **React-based** frameworks (Next.js, Vite + React, Remix). If you're using Vue, Svelte, or Angular, you can still interact with the protocol directly via [`starknet.js`](https://starknetjs.com/) — see [Framework Support](#framework-support) below.
+
 ---
 
 ## Core Problem
@@ -25,6 +27,9 @@ Starknet's Account Abstraction allows users to sign a subscription once and have
 
 ### One Transaction for Subscribe
 The SDK bundles USDC approval + subscription into a single multicall transaction. Users click once, sign once, done.
+
+### Gasless Subscriptions
+With AVNU Paymaster integration, users can subscribe without holding ETH for gas. They only pay USDC — the gas is sponsored automatically.
 
 ### Non-Custodial
 Merchant funds sit in the smart contract until the merchant withdraws. No one else can touch them. The contract has no admin key.
@@ -50,9 +55,62 @@ A keeper bot monitors all active subscriptions and calls `execute_renewal` when 
 | Component | Description |
 |---|---|
 | **Smart Contracts** (Cairo) | `StarkPay.cairo` — the subscription protocol; `MockUSDC.cairo` — testnet token |
-| **`@starkpay/sdk`** | React SDK — components, hooks, call builders |
+| **`@starkpay/sdk`** | React SDK — components, hooks, call builders, MCP server |
 | **Frontend** (Next.js) | Live demo at [starkpayhub.vercel.app](https://starkpayhub.vercel.app) |
-| **Keeper Bot** (Node.js) | Auto-renewal daemon deployed on Railway |
+| **Keeper Bot** (Node.js) | Auto-renewal daemon deployed via Vercel Cron |
+
+---
+
+## Framework Support
+
+### SDK (`@starkpay/sdk`) — React Only
+
+The SDK uses React hooks and JSX components. It works with any **React-based** framework:
+
+| Framework | Support | Notes |
+|---|---|---|
+| **Next.js** (App Router) | ✅ Full | Recommended |
+| **Next.js** (Pages Router) | ✅ Full | |
+| **Vite + React** | ✅ Full | Add `resolve.dedupe` in vite config |
+| **Remix** | ✅ Full | |
+| **Create React App** | ✅ Full | |
+| **Gatsby** | ✅ Full | |
+
+### Non-React Frameworks — Use `starknet.js` Directly
+
+If you're using Vue, Svelte, Angular, or plain JS, you **cannot use the SDK hooks/components** — but you can still integrate with the StarkPay protocol directly using `starknet.js`:
+
+| Framework | SDK | Protocol via starknet.js |
+|---|---|---|
+| **Vue / Nuxt** | ❌ | ✅ Manual integration |
+| **Svelte / SvelteKit** | ❌ | ✅ Manual integration |
+| **Angular** | ❌ | ✅ Manual integration |
+| **Plain HTML/JS** | ❌ | ✅ Manual integration |
+
+For manual integration, you call the contract functions directly:
+
+```js
+import { RpcProvider, Contract, Account, CallData } from "starknet"
+
+const provider = new RpcProvider({ nodeUrl: "https://..." })
+const account  = new Account(provider, address, privateKey)
+
+// Subscribe to a plan
+await account.execute([
+  {
+    contractAddress: USDC_ADDRESS,
+    entrypoint: "approve",
+    calldata: CallData.compile({ spender: STARKPAY_ADDRESS, amount: price }),
+  },
+  {
+    contractAddress: STARKPAY_ADDRESS,
+    entrypoint: "subscribe",
+    calldata: CallData.compile({ plan_id: planId }),
+  },
+])
+```
+
+See [Contract Functions](../smart-contracts/contract-functions.md) for the full list of available functions.
 
 ---
 

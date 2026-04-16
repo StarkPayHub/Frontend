@@ -45,5 +45,6 @@
 
 ## Resources
 
+* [Roadmap](resources/roadmap.md)
 * [Troubleshooting](resources/troubleshooting.md)
 * [Useful Links](resources/useful-links.md)
