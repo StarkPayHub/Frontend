@@ -4,6 +4,16 @@
 
 Payments are processed natively on Starknet using Account Abstraction: users sign once and renewals happen automatically via the keeper bot.
 
+**Live app:** [starkpayhub.vercel.app](https://starkpayhub.vercel.app)
+
+![StarkPayHub Landing Page](images/landing-hero.png)
+
+---
+
+## Video Demo
+
+{% embed url="https://www.youtube.com/watch?v=PLACEHOLDER" %}
+
 ---
 
 ## Why StarkPayHub?

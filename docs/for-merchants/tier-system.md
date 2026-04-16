@@ -15,15 +15,43 @@ StarkPayHub uses its own subscription protocol to gate merchant features. To cre
 
 ---
 
+## Tier Progression
+
+```mermaid
+flowchart LR
+    F["Free<br/><br/>1 plan<br/>(default)"]
+    S["Starter<br/><br/>3 plans"]
+    P["Pro<br/><br/>10 plans"]
+    E["Enterprise<br/><br/>Unlimited"]
+
+    F -->|"Subscribe to Plan 1"| S
+    S -->|"Subscribe to Plan 2"| P
+    P -->|"Subscribe to Plan 3"| E
+
+    style F fill:#3f3f46,color:#d4d4d8,stroke:#52525b
+    style S fill:#1e3a5f,color:#93c5fd,stroke:#3b82f6
+    style P fill:#3b0764,color:#e9d5ff,stroke:#7c3aed
+    style E fill:#701a75,color:#f0abfc,stroke:#c026d3
+```
+
+---
+
 ## How It's Enforced
 
-When a merchant calls `create_plan`, the StarkPay contract checks:
-
-1. How many plans the merchant has already created
-2. Whether the merchant has an active subscription (and to which plan)
-3. Whether the plan limit for their tier has been reached
-
-If the limit is reached, the transaction reverts with an error.
+```mermaid
+flowchart TD
+    A([Merchant calls create_plan]) --> B{Plan limit reached?}
+    B -->|No| C[Plan created ✓]
+    B -->|Yes| D{Has active subscription?}
+    D -->|No| E[Revert: limit reached]
+    D -->|Yes — Plan 1| F{Starter limit reached?}
+    D -->|Yes — Plan 2| G{Pro limit reached?}
+    D -->|Yes — Plan 3| H[Plan created ✓ Enterprise]
+    F -->|No| I[Plan created ✓ Starter]
+    F -->|Yes| E
+    G -->|No| J[Plan created ✓ Pro]
+    G -->|Yes| E
+```
 
 This check happens **on-chain** — it cannot be bypassed.
 

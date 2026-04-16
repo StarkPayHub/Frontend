@@ -13,6 +13,46 @@ StarkPayHub is built on two Cairo contracts deployed to Starknet Sepolia.
 
 ---
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Actors
+        M([Merchant])
+        U([User])
+        K([Keeper Bot])
+    end
+
+    subgraph StarkPay["StarkPay Contract"]
+        CP[create_plan]
+        SUB[subscribe]
+        REN[execute_renewal]
+        CAN[cancel_subscription]
+        WD[withdraw]
+    end
+
+    subgraph USDC["MockUSDC Contract"]
+        ERC[ERC-20 Standard]
+        MINT[mint — testnet only]
+    end
+
+    M --> CP
+    M --> WD
+    U --> SUB
+    U --> CAN
+    K --> REN
+
+    SUB -->|transferFrom| ERC
+    REN -->|transferFrom| ERC
+    WD -->|transfer| ERC
+    U -->|approve before subscribe| ERC
+
+    style StarkPay fill:#3b0764,color:#e9d5ff,stroke:#7c3aed
+    style USDC fill:#1e1b4b,color:#c4b5fd,stroke:#4338ca
+```
+
+---
+
 ## Data Structures
 
 ```rust
@@ -46,29 +86,33 @@ struct MerchantStats {
 
 ## Storage Layout
 
-```
-plan_count: u64                                    — auto-incrementing plan ID counter
-plans: Map<u64, Plan>                              — plan_id → Plan
-subscriptions: Map<(ContractAddress, u64), Subscription>  — (user, plan_id) → Subscription
-merchant_balance: Map<ContractAddress, u256>       — withdrawable USDC per merchant
-merchant_revenue: Map<ContractAddress, u256>       — lifetime revenue per merchant
-merchant_tx_count: Map<ContractAddress, u64>       — total transactions per merchant
-merchant_sub_count: Map<ContractAddress, u64>      — active subscriber count per merchant
-```
+```mermaid
+erDiagram
+    PLAN {
+        u64 plan_id PK
+        felt252 name
+        u256 price
+        u64 interval_seconds
+        ContractAddress merchant
+        bool active
+    }
+    SUBSCRIPTION {
+        ContractAddress user PK
+        u64 plan_id PK
+        u64 start
+        u64 current_period_end
+        bool active
+    }
+    MERCHANT_STATS {
+        ContractAddress merchant PK
+        u256 total_revenue
+        u256 withdrawable
+        u64 active_subs
+        u64 tx_count
+    }
 
----
-
-## Three Actors
-
-```
-Merchant ─────→ create_plan()
-                withdraw()
-
-User ──────────→ subscribe()
-                 cancel_subscription()
-
-Keeper ────────→ execute_renewal(user, plan_id)
-(anyone)
+    PLAN ||--o{ SUBSCRIPTION : "subscribed by users"
+    MERCHANT_STATS }o--|| PLAN : "earns from"
 ```
 
 ---

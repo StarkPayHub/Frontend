@@ -1,27 +1,22 @@
 # How It Works
 
-## The Full Flow
+## System Overview
 
-```
-Merchant creates a plan on-chain
-    ↓
-User connects wallet (Argent X / Braavos)
-    ↓
-User clicks "Subscribe" → SDK builds multicall:
-    [1] USDC.approve(starkpay_address, price)
-    [2] StarkPay.subscribe(plan_id)
-    ↓
-User signs once in wallet popup
-    ↓
-StarkPay contract pulls USDC from user → records subscription
-    ↓
-Your app reads subscription status via useSubscription hook
-    ↓
-Gate content / features based on isActive
-    ↓
-Keeper bot checks every hour → calls execute_renewal when period ends
-    ↓
-Merchant calls withdraw() to claim their USDC
+```mermaid
+flowchart TD
+    M([Merchant]) -->|create_plan| SP[StarkPay Contract]
+    U([User]) -->|multicall: approve + subscribe| SP
+    SP -->|transferFrom| USDC[MockUSDC / USDC]
+    SP -->|record Subscription| DB[(On-chain Storage)]
+    K([Keeper Bot]) -->|execute_renewal every hour| SP
+    SP -->|SubscriptionRenewed or PaymentFailed| EV[Events]
+    M -->|withdraw| SP
+    SP -->|transfer USDC| M
+
+    style SP fill:#7c3aed,color:#fff,stroke:#a78bfa
+    style USDC fill:#1e1b4b,color:#c4b5fd,stroke:#7c3aed
+    style DB fill:#1e1b4b,color:#c4b5fd,stroke:#7c3aed
+    style EV fill:#1e1b4b,color:#c4b5fd,stroke:#7c3aed
 ```
 
 ---
@@ -43,32 +38,54 @@ Crucially, `execute_renewal` **does not revert on failure** — if a user has in
 
 ---
 
-## Payment Flow in Detail
+## Subscribe Flow
 
-```
-User Wallet                  StarkPay Contract              MockUSDC / USDC
-    │                               │                              │
-    │── approve(starkpay, price) ──────────────────────────────→  │
-    │                               │                              │
-    │── subscribe(plan_id) ───────→ │                              │
-    │                               │── transferFrom(user, self) ─→│
-    │                               │                              │
-    │                               │  records Subscription{       │
-    │                               │    plan_id, start,           │
-    │                               │    current_period_end,       │
-    │                               │    active: true              │
-    │                               │  }                           │
+```mermaid
+sequenceDiagram
+    actor User
+    participant Wallet as Argent X / Braavos
+    participant SDK as @starkpay/sdk
+    participant USDC as MockUSDC Contract
+    participant SP as StarkPay Contract
+
+    User->>Wallet: click Subscribe
+    Wallet->>SDK: buildSubscribeCalls(plan_id)
+    SDK-->>Wallet: [approve call, subscribe call]
+    Wallet->>User: popup — 1 signature
+    User->>Wallet: sign
+    Wallet->>USDC: approve(starkpay, price)
+    Wallet->>SP: subscribe(plan_id)
+    SP->>USDC: transferFrom(user, self, price)
+    SP-->>SP: Subscription { active: true, period_end: now + interval }
+    SP-->>Wallet: emit SubscriptionCreated
+    Wallet-->>User: confirmed ✓
 ```
 
-At renewal time:
+---
 
-```
-Keeper Wallet               StarkPay Contract              MockUSDC / USDC
-    │                               │                              │
-    │── execute_renewal(user, id) ─→│                              │
-    │                               │── transferFrom(user, self) ─→│
-    │                               │  (or emits PaymentFailed)    │
-    │                               │  updates current_period_end  │
+## Renewal Flow
+
+```mermaid
+sequenceDiagram
+    actor Keeper
+    participant SP as StarkPay Contract
+    participant USDC as MockUSDC Contract
+
+    loop Every hour
+        Keeper->>SP: fetch SubscriptionCreated events
+        Keeper->>Keeper: filter: current_period_end < now
+
+        alt User has enough USDC
+            Keeper->>SP: execute_renewal(user, plan_id)
+            SP->>USDC: transferFrom(user, self, price)
+            SP-->>SP: update current_period_end += interval
+            SP-->>Keeper: emit SubscriptionRenewed ✓
+        else Insufficient USDC
+            Keeper->>SP: execute_renewal(user, plan_id)
+            SP-->>SP: active = false
+            SP-->>Keeper: emit PaymentFailed ✗
+        end
+    end
 ```
 
 ---

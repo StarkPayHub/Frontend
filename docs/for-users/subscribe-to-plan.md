@@ -7,6 +7,9 @@
 1. **Connect your wallet** — Argent X or Braavos (see [Connect Your Wallet](connect-wallet.md))
 2. **Have USDC** — On Sepolia, claim free test USDC from the pricing page (see [Claim Testnet USDC](claim-testnet-usdc.md))
 3. **Go to the Pricing page** — [starkpayhub.vercel.app/pricing](https://starkpayhub.vercel.app/pricing)
+
+![Pricing Page — Choose a Plan](../images/pricing-page.png)
+
 4. **Click Subscribe** on the plan you want
 5. **Sign the transaction** in your wallet popup — a single signature approves the USDC and subscribes in one multicall
 
@@ -14,31 +17,44 @@ That's it. Your subscription is active immediately.
 
 ---
 
-## What Happens On-Chain
+## What Happens Step by Step
 
-When you subscribe, two things happen in a single transaction:
+```mermaid
+sequenceDiagram
+    actor You
+    participant App as StarkPayHub App
+    participant Wallet as Argent X / Braavos
+    participant USDC as MockUSDC Contract
+    participant SP as StarkPay Contract
 
-1. `MockUSDC.approve(starkpay_address, price)` — authorizes the contract to pull your USDC
-2. `StarkPay.subscribe(plan_id)` — pulls the USDC and records your subscription on-chain
-
-Your subscription is stored in the smart contract as:
-
-```
-Subscription {
-  plan_id: ...,
-  start: <unix timestamp>,
-  current_period_end: <start + interval>,
-  active: true
-}
+    You->>App: click Subscribe
+    App->>Wallet: send multicall transaction
+    Wallet->>You: popup — sign once
+    You->>Wallet: sign
+    Wallet->>USDC: approve(starkpay, price)
+    Wallet->>SP: subscribe(plan_id)
+    SP->>USDC: transferFrom(you → starkpay, price)
+    SP-->>SP: Subscription { active: true }
+    SP-->>App: emit SubscriptionCreated
+    App-->>You: button shows renewal date ✓
 ```
 
 ---
 
-## Auto-Renewal
+## Auto-Renewal Flow
 
-At the end of each billing period, the **keeper bot** automatically calls `execute_renewal` on your behalf. This pulls the next period's USDC from your wallet.
+```mermaid
+flowchart LR
+    A([Period ends]) --> B{Keeper checks}
+    B -->|current_period_end < now| C[execute_renewal]
+    C --> D{USDC available?}
+    D -->|Yes| E[Pull USDC<br/>Extend period]
+    D -->|No| F[Set active = false<br/>Emit PaymentFailed]
+    E --> G([Active next period])
+    F --> H([Subscription inactive])
+```
 
-**Make sure you have enough USDC in your wallet before the renewal date.** If you don't have sufficient balance, the renewal fails silently — your subscription becomes inactive and you lose access.
+**Make sure you have enough USDC in your wallet before the renewal date.** If you don't have sufficient balance, the renewal fails — your subscription becomes inactive and you lose access.
 
 ---
 

@@ -2,6 +2,8 @@
 
 StarkPayHub is an **on-chain subscription payment protocol** built on Starknet. It enables SaaS products to accept recurring USDC payments directly on-chain — no payment processors, no custodians, no lock-in.
 
+![StarkPayHub — The Subscription Protocol for Web3](../images/landing-hero.png)
+
 ---
 
 ## Core Problem

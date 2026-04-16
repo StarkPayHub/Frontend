@@ -6,12 +6,28 @@ The keeper bot is a Node.js process that runs continuously and triggers subscrip
 
 ## What It Does
 
-Every hour, the keeper:
+```mermaid
+flowchart TD
+    A([Start — every 1 hour]) --> B[Fetch SubscriptionCreated events<br/>from DEPLOY_BLOCK to latest]
+    B --> C[Deduplicate by user + plan_id]
+    C --> D{For each subscription}
 
-1. Reads all `SubscriptionCreated` events from the StarkPay contract
-2. Finds subscriptions where `current_period_end < now`
-3. Calls `execute_renewal(user, plan_id)` for each expired subscription
-4. Logs results: renewed / skipped / failed
+    D --> E{current_period_end < now?}
+    E -- No --> F([Log: Skipped])
+    E -- Yes --> G[Call execute_renewal\nuser, plan_id]
+
+    G --> H{User has enough USDC?}
+    H -- Yes --> I[transferFrom user → StarkPay<br/>Update current_period_end]
+    H -- No --> J[Set active = false<br/>Emit PaymentFailed]
+
+    I --> K([Log: Renewed ✓])
+    J --> L([Log: Failed ✗])
+
+    F & K & L --> D
+    D -->|all done| M([Summary: N renewed · M skipped · P failed])
+```
+
+Sample output:
 
 ```
 🔁 Starting keeper in loop mode (every 1 hour)
@@ -39,11 +55,16 @@ Every hour, the keeper:
 
 ## What Happens on Renewal Failure?
 
-If a user doesn't have enough USDC:
-- The contract emits `PaymentFailed` event
-- The subscription's `active` flag is set to `false`
-- The keeper logs the failure and continues with the next subscription
-- No gas is wasted reverting a batch
+```mermaid
+flowchart LR
+    A([execute_renewal called]) --> B{USDC balance >= price?}
+    B -- Yes --> C[transferFrom succeeds]
+    B -- No --> D[No revert — continues]
+    C --> E[Emit SubscriptionRenewed\nUpdate period_end]
+    D --> F[Emit PaymentFailed\nSet active = false]
+    E --> G([Next subscription])
+    F --> G
+```
 
 This design allows one keeper to handle thousands of renewals without a single failure blocking others.
 
