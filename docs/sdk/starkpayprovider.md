@@ -1,6 +1,6 @@
 # StarkPayProvider
 
-The root provider that configures Starknet connection and StarkPay contract addresses. Must wrap your entire app (or the parts that use SDK components/hooks).
+The root provider that configures the Starknet connection and StarkPay contract addresses. Must wrap your entire app (or any parts that use SDK hooks/components).
 
 ---
 
@@ -9,12 +9,17 @@ The root provider that configures Starknet connection and StarkPay contract addr
 ```tsx
 import { StarkPayProvider } from '@starkpay/sdk'
 
-// Minimal — uses deployed Sepolia defaults
+// Minimal — uses deployed Sepolia defaults, no config needed
 <StarkPayProvider>
   <App />
 </StarkPayProvider>
 
-// Full configuration
+// With gasless (users pay zero gas)
+<StarkPayProvider gasless>
+  <App />
+</StarkPayProvider>
+
+// Full custom config
 <StarkPayProvider
   contractAddress="0x..."
   usdcAddress="0x..."
@@ -41,46 +46,58 @@ import { StarkPayProvider } from '@starkpay/sdk'
 
 ---
 
-## Default Addresses (Sepolia)
+## Default Addresses (Sepolia Testnet)
 
-```
-StarkPay: 0x058a1e8058620d285047c7ee3df15804898070e6788fbffe004a29ffa554aa2c
-MockUSDC: 0x03f2e44f91a2994b1748473aebe2512a280a4ada60df57d31886d3faf95a0776
-```
+These are pre-configured — you don't need to pass them during development:
 
-You don't need to pass these during development — the provider is pre-configured for Sepolia.
+| Contract | Address |
+|---|---|
+| StarkPay | `0x04cf20808f1a9db9a4da75eb59566416bba3f2db14821cdeb0e8d4852f31aa14` |
+| MockUSDC | `0x029b1a04e2ceb7ef124e0af044d3576b8c6210b8bc437e907b69d983d6ea87a9` |
 
 ---
 
 ## Gasless Transactions
 
-When `gasless={true}`, the SDK routes transactions through [AVNU Paymaster](https://docs.avnu.fi/), which pays gas on the user's behalf.
+When `gasless={true}`, the SDK routes transactions through [AVNU Paymaster](https://docs.avnu.fi/), which pays gas on behalf of the user.
 
 ```tsx
-<StarkPayProvider gasless={true}>
+<StarkPayProvider gasless>
   <App />
 </StarkPayProvider>
 ```
 
-> **Note**: Gasless requires contract whitelisting by AVNU. On Sepolia testnet, gasless may not work for custom contract deployments. For local development, use `gasless={false}` and fund users via the [Starknet Faucet](https://faucet.starknet.io).
+**How it works:**
+1. User clicks subscribe
+2. AVNU builds the transaction and asks user to sign
+3. User signs (no gas required)
+4. AVNU relays the transaction to the network
+5. Subscription is activated — user paid only USDC, no ETH
+
+> Available on Sepolia testnet for free. For mainnet, contact AVNU for whitelisting.
 
 ---
 
-## Error: "useStarkPayConfig must be used inside StarkPayProvider"
+## Common Errors
 
-This error means a component or hook from the SDK was rendered outside of `<StarkPayProvider>`. Make sure the provider wraps all pages/components that use the SDK.
+### "useStarkPayConfig must be used inside StarkPayProvider"
+
+A hook or component from the SDK was rendered outside of `<StarkPayProvider>`. Make sure the provider wraps all pages that use the SDK:
 
 ```tsx
-// ✅ Correct — provider at root
+// ✅ Correct
 <StarkPayProvider>
-  <Header />      {/* can use SDK hooks */}
-  <PricingPage /> {/* can use SDK hooks */}
-  <Footer />
+  <Header />       {/* can use SDK hooks */}
+  <PricingPage />  {/* can use SDK hooks */}
 </StarkPayProvider>
 
-// ❌ Wrong — component outside provider
+// ❌ Wrong — component is outside the provider
 <Header />
 <StarkPayProvider>
   <PricingPage />
 </StarkPayProvider>
 ```
+
+### "Contract not found" when using Argent Web Wallet
+
+Argent Web Wallet only works on **Mainnet**. For Sepolia testing, use **Argent X extension** or **Braavos extension** instead. See [Connect Your Wallet](../for-users/connect-wallet.md).

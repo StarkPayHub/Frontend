@@ -47,8 +47,8 @@ Payments are processed natively on Starknet using Account Abstraction: users sig
 
 | Contract | Address |
 |---|---|
-| StarkPay | `0x058a1e8058620d285047c7ee3df15804898070e6788fbffe004a29ffa554aa2c` |
-| MockUSDC | `0x03f2e44f91a2994b1748473aebe2512a280a4ada60df57d31886d3faf95a0776` |
+| StarkPay | `0x04cf20808f1a9db9a4da75eb59566416bba3f2db14821cdeb0e8d4852f31aa14` |
+| MockUSDC | `0x029b1a04e2ceb7ef124e0af044d3576b8c6210b8bc437e907b69d983d6ea87a9` |
 
 [View on Voyager →](https://sepolia.voyager.online/)
 

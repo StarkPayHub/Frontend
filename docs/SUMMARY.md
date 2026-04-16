@@ -31,6 +31,7 @@
 * [Components](sdk/components.md)
 * [Hooks](sdk/hooks.md)
 * [Utilities & Types](sdk/utilities-and-types.md)
+* [MCP Server](sdk/mcp-server.md)
 
 ## Smart Contracts
 

@@ -1,65 +1,57 @@
 # Quick Start
 
-Add on-chain subscriptions to your SaaS in 3 steps.
+Add on-chain subscriptions to your SaaS in minutes.
 
 ---
 
-## Step 1 — Wrap your app with StarkPayProvider
+## Option A — Scaffold a New Project (Recommended)
 
-**Next.js App Router** (`app/providers.tsx`):
-
-```tsx
-'use client'
-import { StarkPayProvider } from '@starkpay/sdk'
-
-export function Providers({ children }: { children: React.ReactNode }) {
-  return <StarkPayProvider>{children}</StarkPayProvider>
-}
+```bash
+npx starkpay init
 ```
+
+Creates a complete Next.js starter with everything pre-wired. Then:
+
+```bash
+npm install
+# Edit lib/starkpay.ts → set your PLAN_ID
+npm run dev
+```
+
+Done. Your app has a pricing page, subscribe button, and subscription-gated dashboard.
+
+---
+
+## Option B — Add to Existing Project
+
+### Step 1 — Install
+
+```bash
+npm install @starkpay/sdk
+```
+
+### Step 2 — Wrap your app
 
 ```tsx
 // app/layout.tsx
-import { Providers } from './providers'
+import { StarkPayProvider } from '@starkpay/sdk'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <StarkPayProvider>{children}</StarkPayProvider>
       </body>
     </html>
   )
 }
 ```
 
-**React + Vite** (`main.tsx`):
+### Step 3 — Get your Plan ID
 
-```tsx
-import { createRoot } from 'react-dom/client'
-import { StarkPayProvider } from '@starkpay/sdk'
-import App from './App'
+Go to the [Merchant Dashboard](https://starkpayhub.vercel.app/merchant), create a plan, and copy the **Plan ID** shown after creation (e.g. `4`).
 
-createRoot(document.getElementById('root')!).render(
-  <StarkPayProvider>
-    <App />
-  </StarkPayProvider>
-)
-```
-
----
-
-## Step 2 — Create a subscription plan
-
-Use the [Merchant Dashboard](https://starkpayhub.vercel.app/merchant) to create plans visually, or via CLI:
-
-```bash
-# Create "Pro" plan: $15/month
-starkli invoke <STARKPAY_ADDRESS> create_plan 0x50726f u256:15000000 2592000
-```
-
----
-
-## Step 3 — Add a Subscribe button
+### Step 4 — Add a subscribe button
 
 ```tsx
 'use client'
@@ -68,39 +60,40 @@ import { StarkPayButton } from '@starkpay/sdk'
 export default function PricingPage() {
   return (
     <StarkPayButton
-      planId={1}
+      planId={4}
       onSuccess={(txHash) => console.log('Subscribed!', txHash)}
     />
   )
 }
 ```
 
-That's it. Users can now subscribe to your SaaS with USDC on Starknet.
+That's it. Users can now subscribe with USDC on Starknet.
 
 ---
 
 ## Gate Content Behind Subscription
 
+Protect any page — redirect users to pricing if they're not subscribed:
+
 ```tsx
 'use client'
 import { useSubscription } from '@starkpay/sdk'
 import { useAccount } from '@starknet-react/core'
-import { StarkPayButton } from '@starkpay/sdk'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
-export default function PremiumContent() {
+export default function DashboardPage() {
   const { address } = useAccount()
-  const { isActive, isLoading } = useSubscription(address, 1)
+  const { isActive, isLoading } = useSubscription(address, 4) // your plan ID
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && !isActive) {
+      router.replace('/') // redirect to pricing
+    }
+  }, [isLoading, isActive, router])
 
   if (isLoading) return <p>Checking subscription...</p>
-
-  if (!isActive) {
-    return (
-      <div>
-        <p>This content requires a Pro subscription.</p>
-        <StarkPayButton planId={1} />
-      </div>
-    )
-  }
 
   return <div>Premium content — visible to subscribers only.</div>
 }
@@ -108,7 +101,26 @@ export default function PremiumContent() {
 
 ---
 
-## Full Example: Pricing Page with Auto-Loaded Plans
+## Gasless Subscriptions
+
+Enable AVNU Paymaster so users pay **zero gas** — they only sign the USDC payment:
+
+```tsx
+<StarkPayProvider gasless>
+  <App />
+</StarkPayProvider>
+```
+
+With `gasless` enabled:
+- User opens wallet → signs once → done
+- No ETH needed for gas — AVNU sponsors it
+- Works on Sepolia testnet out of the box
+
+---
+
+## Show a Full Pricing Table
+
+Fetch all active plans from the contract and render them automatically:
 
 ```tsx
 'use client'
@@ -119,15 +131,49 @@ export default function PricingPage() {
   const router = useRouter()
 
   return (
-    <div>
-      <h1>Choose Your Plan</h1>
-      <PricingTable
-        onSuccess={() => router.push('/dashboard')}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
-      />
-    </div>
+    <PricingTable
+      onSuccess={() => router.push('/dashboard')}
+      className="grid grid-cols-1 md:grid-cols-3 gap-6"
+    />
   )
 }
 ```
 
-`PricingTable` automatically fetches all active plans from the contract and renders them.
+---
+
+## Check Subscription Status
+
+```tsx
+'use client'
+import { useSubscription } from '@starkpay/sdk'
+import { useAccount } from '@starknet-react/core'
+
+export function StatusBadge({ planId }: { planId: number }) {
+  const { address } = useAccount()
+  const { isActive, periodEnd, isLoading } = useSubscription(address, planId)
+
+  if (isLoading) return null
+
+  const renewDate = periodEnd
+    ? new Date(Number(periodEnd) * 1000).toLocaleDateString()
+    : null
+
+  return (
+    <span>
+      {isActive ? `Active — renews ${renewDate}` : 'No subscription'}
+    </span>
+  )
+}
+```
+
+---
+
+## AI-Assisted Development
+
+The SDK includes a built-in MCP server so you can ask AI assistants about integration without leaving your editor:
+
+```bash
+claude mcp add starkpay -- npx starkpay mcp
+```
+
+→ See [MCP Server](mcp-server.md) for full setup.
