@@ -220,7 +220,9 @@ export function ConnectWallet() {
               {/* Address row: logo + address + inline copy */}
               <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
                 {activeConnector?.icon ? (
-                  <img src={activeConnector.icon} alt="" width={18} height={18}
+                  <img
+                    src={typeof activeConnector.icon === "string" ? activeConnector.icon : activeConnector.icon.dark}
+                    alt="" width={18} height={18}
                     style={{ borderRadius: 5, flexShrink: 0, objectFit: "contain" }} />
                 ) : (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(139,92,246,0.7)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
