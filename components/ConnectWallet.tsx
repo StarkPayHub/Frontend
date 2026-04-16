@@ -3,7 +3,7 @@
 import { useAccount, useConnect, useDisconnect, useBalance } from "@starknet-react/core";
 
 const STRK_ADDRESS = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
-const USDC_ADDRESS = "0x029b1a04e2ceb7ef124e0af044d3576b8c6210b8bc437e907b69d983d6ea87a9";
+const USDC_ADDRESS = "0x021ab8a417e9cb94bf02ff0595bca7506d1237ffed6b5f80ad39460368955891";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 

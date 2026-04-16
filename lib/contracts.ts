@@ -1,7 +1,7 @@
 export const STARKPAY_ADDRESS =
-  "0x04cf20808f1a9db9a4da75eb59566416bba3f2db14821cdeb0e8d4852f31aa14";
+  "0x03038926f97a7410fcd8630938080c6e2de65a1e7c0cfedcfaeffbebbae11633";
 export const MOCK_USDC_ADDRESS =
-  "0x029b1a04e2ceb7ef124e0af044d3576b8c6210b8bc437e907b69d983d6ea87a9";
+  "0x021ab8a417e9cb94bf02ff0595bca7506d1237ffed6b5f80ad39460368955891";
 
 export const starkpayAbi = [
   { type: "impl", name: "StarkPayImpl", interface_name: "starkpay_contracts::interfaces::IStarkPay" },

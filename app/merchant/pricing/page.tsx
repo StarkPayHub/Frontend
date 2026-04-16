@@ -71,10 +71,10 @@ const TIERS = [
   {
     id: "pro",
     name: "Pro",
-    price: "$15",
+    price: "$20",
     priceNote: "/ bulan",
     planId: 2,
-    priceUSDC: 15_000_000n,
+    priceUSDC: 20_000_000n,
     color: "#a78bfa",
     bg: "rgba(124,58,237,0.08)",
     border: "rgba(124,58,237,0.4)",

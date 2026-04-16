@@ -4,7 +4,7 @@ import { RpcProvider, Account, cairo, CallData } from 'starknet'
 const RPC_URL = process.env.STARKNET_RPC
   ?? 'https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_8/demo'
 
-const MOCK_USDC_ADDRESS = '0x029b1a04e2ceb7ef124e0af044d3576b8c6210b8bc437e907b69d983d6ea87a9'
+const MOCK_USDC_ADDRESS = '0x021ab8a417e9cb94bf02ff0595bca7506d1237ffed6b5f80ad39460368955891'
 
 export async function POST(req: NextRequest) {
   const { address } = await req.json()
