@@ -59,5 +59,21 @@ If the transfer fails for any reason, the transaction reverts and your balance i
 
 - Only the address that created the plans (the merchant) can withdraw
 - Withdrawals transfer the entire `withdrawable` balance — partial withdrawals are not supported
-- There is no withdrawal fee
 - USDC lands in your wallet within the same block as the withdrawal transaction
+
+---
+
+## Protocol Fee
+
+StarkPay charges a **2% protocol fee** on every subscription payment (new subscriptions and renewals).
+
+The fee is deducted automatically — you receive **98% of each payment**. You do not need to do anything; the contract handles this transparently.
+
+**Example:** If your plan costs $15 USDC, you receive $14.70 per subscriber per billing period.
+
+The fee percentage can be adjusted by the StarkPay owner (max 10%). The current rate is always readable on-chain:
+
+```bash
+starkli call <STARKPAY> get_protocol_fee_bps
+# Returns basis points — 200 = 2%
+```

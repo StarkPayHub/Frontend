@@ -91,10 +91,41 @@ Withdraw all accumulated USDC to the caller's (merchant's) wallet.
 fn withdraw(ref self: TContractState)
 ```
 
-Transfers the full `withdrawable` balance. Uses check-before-transfer to prevent reentrancy.
+Transfers the full `withdrawable` balance (after protocol fee deduction). Uses check-before-transfer to prevent reentrancy.
 
 **Reverts if:**
 - Caller has no withdrawable balance
+- Caller's StarkPay tier subscription has expired and they have more plans than the free tier allows
+
+---
+
+### set_protocol_fee _(owner only)_
+
+Update the protocol fee rate.
+
+```rust
+fn set_protocol_fee(ref self: TContractState, new_bps: u256)
+```
+
+`new_bps` is in basis points — `200` = 2%, `500` = 5%. Maximum allowed: `1000` (10%).
+
+**Reverts if:**
+- Caller is not the contract owner
+- `new_bps > 1000`
+
+---
+
+### withdraw_protocol_fee _(owner only)_
+
+Withdraw all accumulated protocol fees to the owner's wallet.
+
+```rust
+fn withdraw_protocol_fee(ref self: TContractState)
+```
+
+**Reverts if:**
+- Caller is not the contract owner
+- Protocol balance is zero
 
 ---
 
@@ -158,6 +189,26 @@ fn get_plan_count(self: @TContractState) -> u64
 ```
 
 Returns the total number of plans ever created (including inactive ones).
+
+---
+
+### get_protocol_fee_bps
+
+```rust
+fn get_protocol_fee_bps(self: @TContractState) -> u256
+```
+
+Returns the current protocol fee in basis points (e.g. `200` = 2%).
+
+---
+
+### get_protocol_balance
+
+```rust
+fn get_protocol_balance(self: @TContractState) -> u256
+```
+
+Returns the total accumulated protocol fees not yet withdrawn by the owner.
 
 ---
 
