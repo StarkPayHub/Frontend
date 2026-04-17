@@ -8,10 +8,10 @@ StarkPayHub uses its own subscription protocol to gate merchant features. To cre
 
 | Tier | How to Unlock | Max Plans You Can Create |
 |---|---|---|
-| **Free** | Default (no subscription needed) | 1 plan |
-| **Starter** | Subscribe to Plan ID 1 | 3 plans |
-| **Pro** | Subscribe to Plan ID 2 | 10 plans |
-| **Enterprise** | Subscribe to Plan ID 3 | Unlimited |
+| **Free** | Default (no subscription needed) | 1 plan | — |
+| **Starter** | Subscribe to Plan ID 1 ($10/mo) | 3 plans | — |
+| **Pro** | Subscribe to Plan ID 2 ($30/mo) | 10 plans | — |
+| **Enterprise** | Subscribe to Plan ID 3 ($99/mo) | Unlimited | Gasless for subscribers |
 
 ---
 
@@ -97,6 +97,25 @@ function TierBadge() {
 To move from Free → Starter, subscribe to **Plan ID 1** on the pricing page. The tier upgrade takes effect immediately after your subscription is confirmed on-chain.
 
 This creates a recursive use of the protocol: merchants pay StarkPayHub in USDC to unlock higher plan limits, just like their own users pay them.
+
+---
+
+## Enterprise Exclusive: Gasless Subscriptions
+
+Enterprise tier merchants get an additional benefit: **their subscribers pay zero gas**. When a developer enables `gasless={true}` in the SDK, StarkPayHub automatically checks on-chain whether the plan's merchant is on Enterprise tier.
+
+- **Enterprise merchant** → gas is sponsored by AVNU Paymaster → user pays only USDC
+- **Non-Enterprise merchant** → SDK falls back to normal execution → user pays gas
+
+This happens transparently — no API key or extra setup needed from the developer. Just add `gasless` to the provider:
+
+```tsx
+<StarkPayProvider gasless>
+  <App />
+</StarkPayProvider>
+```
+
+> Gasless sponsorship is available on **Sepolia testnet** (free, unlimited). Mainnet sponsorship uses AVNU credits.
 
 ---
 

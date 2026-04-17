@@ -18,8 +18,8 @@ importers:
         specifier: ^3.7.4
         version: 3.7.4(bufferutil@4.1.0)(get-starknet-core@4.0.0)(react@18.3.1)(starknet@6.24.1)(typescript@5.9.3)(utf-8-validate@6.0.6)
       '@starkpay/sdk':
-        specifier: ^0.3.24
-        version: 0.3.24(c1e63acaf6e89e2c5ba770d7a63cf358)
+        specifier: ^0.3.25
+        version: 0.3.25(c1e63acaf6e89e2c5ba770d7a63cf358)
       get-starknet-core:
         specifier: ^4.0.0
         version: 4.0.0
@@ -1612,8 +1612,8 @@ packages:
       react: ^18.0
       starknet: ^6.11.0
 
-  '@starkpay/sdk@0.3.24':
-    resolution: {integrity: sha512-JWtWdW6C3TpoqslemfYcCH9UDKuwlytUV8aINbhjDxsegsEL5i13dp9rbeM9UtnPh7lP8yTUB6ERM3h9fxqgnQ==}
+  '@starkpay/sdk@0.3.25':
+    resolution: {integrity: sha512-agsitnlpk9zvnta6fU+21of68uV9OZTIkljEnmuwDTAOX9c6EafDtUf8OVtFmykOB2Ybctw4WJRp6vebwwA0Qw==}
     hasBin: true
     peerDependencies:
       react: '>=18.0.0'
@@ -8666,7 +8666,7 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@starkpay/sdk@0.3.24(c1e63acaf6e89e2c5ba770d7a63cf358)':
+  '@starkpay/sdk@0.3.25(c1e63acaf6e89e2c5ba770d7a63cf358)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.29.0(zod@4.3.6)
       '@starknet-io/get-starknet-core': 4.0.8

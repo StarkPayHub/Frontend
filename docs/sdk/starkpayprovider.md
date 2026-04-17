@@ -14,7 +14,7 @@ import { StarkPayProvider } from '@starkpay/sdk'
   <App />
 </StarkPayProvider>
 
-// With gasless (users pay zero gas)
+// With gasless (users pay zero gas — Enterprise tier merchants only)
 <StarkPayProvider gasless>
   <App />
 </StarkPayProvider>
@@ -41,7 +41,8 @@ import { StarkPayProvider } from '@starkpay/sdk'
 | `usdcAddress` | `string` | Deployed Sepolia MockUSDC | USDC token contract address |
 | `rpcUrl` | `string` | Public Sepolia RPC | Starknet RPC endpoint |
 | `network` | `'sepolia' \| 'mainnet'` | `'sepolia'` | Network to connect to |
-| `gasless` | `boolean` | `false` | Sponsor gas via AVNU Paymaster |
+| `gasless` | `boolean` | `false` | Enable tier-gated gasless subscriptions |
+| `gaslessEndpoint` | `string` | StarkPayHub hosted endpoint | Override gasless sponsorship URL (for self-hosted) |
 | `children` | `ReactNode` | required | — |
 
 ---
@@ -52,14 +53,14 @@ These are pre-configured — you don't need to pass them during development:
 
 | Contract | Address |
 |---|---|
-| StarkPay | `0x04cf20808f1a9db9a4da75eb59566416bba3f2db14821cdeb0e8d4852f31aa14` |
-| MockUSDC | `0x029b1a04e2ceb7ef124e0af044d3576b8c6210b8bc437e907b69d983d6ea87a9` |
+| StarkPay v9 | `0x0156aa73efd3389c5552be7c61e07faa7bdefca67af1f0e604c77ed3c1fd86ad` |
+| MockUSDC | `0x021ab8a417e9cb94bf02ff0595bca7506d1237ffed6b5f80ad39460368955891` |
 
 ---
 
-## Gasless Transactions
+## Gasless Subscriptions (Tier-Gated)
 
-When `gasless={true}`, the SDK routes transactions through [AVNU Paymaster](https://docs.avnu.fi/), which pays gas on behalf of the user.
+When `gasless={true}`, the SDK attempts to sponsor gas for subscribe transactions via StarkPayHub's paymaster. **No API key needed from the developer** — the SDK calls StarkPayHub's hosted endpoint automatically.
 
 ```tsx
 <StarkPayProvider gasless>
@@ -67,14 +68,39 @@ When `gasless={true}`, the SDK routes transactions through [AVNU Paymaster](http
 </StarkPayProvider>
 ```
 
-**How it works:**
-1. User clicks subscribe
-2. AVNU builds the transaction and asks user to sign
-3. User signs (no gas required)
-4. AVNU relays the transaction to the network
-5. Subscription is activated — user paid only USDC, no ETH
+### How it works
 
-> Available on Sepolia testnet for free. For mainnet, contact AVNU for whitelisting.
+1. User clicks subscribe
+2. SDK sends the transaction to StarkPayHub's gasless endpoint
+3. Server checks if the plan's **merchant is on Enterprise tier**
+4. If Enterprise → AVNU Paymaster sponsors the gas → user signs once (0 gas)
+5. If not Enterprise → SDK automatically falls back to normal execution (user pays gas)
+6. Subscription is activated — Enterprise subscribers paid only USDC, no ETH
+
+### Tier requirement
+
+| Merchant Tier | Gasless Available? |
+|---|---|
+| Free | No — user pays gas |
+| Starter | No — user pays gas |
+| Pro | No — user pays gas |
+| **Enterprise** | **Yes — gas is sponsored** |
+
+> Merchants must subscribe to the Enterprise plan ($99/mo) on [starkpayhub.vercel.app/pricing](https://starkpayhub.vercel.app/pricing) to unlock gasless for their subscribers.
+
+### Automatic fallback
+
+If gasless is rejected (non-Enterprise merchant, AVNU down, etc.), the SDK silently falls back to `account.execute()` — user pays gas normally. No error shown to the user.
+
+### Self-hosted endpoint
+
+If you host your own StarkPayHub instance, override the endpoint:
+
+```tsx
+<StarkPayProvider gasless gaslessEndpoint="https://your-domain.com/api/gasless-subscribe">
+  <App />
+</StarkPayProvider>
+```
 
 ---
 
@@ -85,13 +111,13 @@ When `gasless={true}`, the SDK routes transactions through [AVNU Paymaster](http
 A hook or component from the SDK was rendered outside of `<StarkPayProvider>`. Make sure the provider wraps all pages that use the SDK:
 
 ```tsx
-// ✅ Correct
+// Correct
 <StarkPayProvider>
-  <Header />       {/* can use SDK hooks */}
-  <PricingPage />  {/* can use SDK hooks */}
+  <Header />
+  <PricingPage />
 </StarkPayProvider>
 
-// ❌ Wrong — component is outside the provider
+// Wrong — component is outside the provider
 <Header />
 <StarkPayProvider>
   <PricingPage />
