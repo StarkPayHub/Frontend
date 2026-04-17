@@ -4,11 +4,11 @@
 
 | Contract | Address |
 |---|---|
-| **StarkPay** | `0x03038926f97a7410fcd8630938080c6e2de65a1e7c0cfedcfaeffbebbae11633` |
+| **StarkPay** | `0x0156aa73efd3389c5552be7c61e07faa7bdefca67af1f0e604c77ed3c1fd86ad` |
 | **MockUSDC** | `0x021ab8a417e9cb94bf02ff0595bca7506d1237ffed6b5f80ad39460368955891` |
 
 View on Voyager Explorer:
-- [StarkPay contract →](https://sepolia.voyager.online/contract/0x03038926f97a7410fcd8630938080c6e2de65a1e7c0cfedcfaeffbebbae11633)
+- [StarkPay contract →](https://sepolia.voyager.online/contract/0x0156aa73efd3389c5552be7c61e07faa7bdefca67af1f0e604c77ed3c1fd86ad)
 - [MockUSDC contract →](https://sepolia.voyager.online/contract/0x021ab8a417e9cb94bf02ff0595bca7506d1237ffed6b5f80ad39460368955891)
 
 ---
