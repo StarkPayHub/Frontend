@@ -1,20 +1,12 @@
 /**
- * Gasless execution via AVNU Paymaster.
- * API key disimpan di server (AVNU_API_KEY env var), frontend hanya hit /api/paymaster proxy.
+ * Gasless execution via AVNU Paymaster (starknet.js 6.x manual flow).
  *
  * Flow:
- *   1. POST /api/paymaster → paymaster_buildTransaction → dapat typed_data + parameters
- *   2. account.signMessage(typed_data) → user sign di wallet (0 gas)
- *   3. POST /api/paymaster → paymaster_executeTransaction → AVNU relay tx
+ *   1. POST /api/paymaster → paymaster_buildTransaction → typed_data + parameters
+ *   2. account.signMessage(typed_data) → user signs (no gas popup)
+ *   3. POST /api/paymaster → paymaster_executeTransaction → AVNU relays tx
  *
- * Fallback: kalau paymaster gagal → account.execute() biasa (user bayar gas).
- *
- * Format AVNU JSON-RPC yang benar (probed dari API):
- * - transaction.type: "invoke" (lowercase)
- * - transaction.invoke.user_address, transaction.invoke.calls
- * - calls: { to, selector (hex hash of entrypoint), calldata }
- * - parameters.version: "0x1"
- * - parameters.fee_mode: { mode: "sponsored" }  (snake_case)
+ * Fallback: if paymaster fails → account.execute() biasa (user bayar gas)
  */
 
 import { hash } from "starknet";
@@ -32,17 +24,19 @@ async function paymasterRpc(method: string, params: unknown) {
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
   });
   const json = await res.json();
-  if (json.error) throw new Error(json.error.message ?? JSON.stringify(json.error));
+  if (json.error) {
+    const msg = json.error.message ?? JSON.stringify(json.error);
+    const data = json.error.data ? ` | detail: ${JSON.stringify(json.error.data)}` : "";
+    throw new Error(`${msg}${data}`);
+  }
   return json.result;
 }
 
-/** Normalize felt value to 0x hex string — AVNU requires hex, not decimal */
 function toHex(value: string): string {
   if (value.startsWith("0x") || value.startsWith("0X")) return value;
   try { return "0x" + BigInt(value).toString(16); } catch { return value; }
 }
 
-/** Convert GaslessCall[] to AVNU call format: { to, selector, calldata[] } */
 function toAvnuCalls(calls: GaslessCall[]) {
   return calls.map(c => ({
     to:       c.contractAddress,
@@ -58,7 +52,7 @@ export async function executeGasless(
   try {
     const avnuCalls = toAvnuCalls(calls);
 
-    // 1. Build — paymaster kasih typed_data untuk di-sign
+    // 1. Build — paymaster kasih typed_data untuk di-sign user
     const buildResult = await paymasterRpc("paymaster_buildTransaction", {
       transaction: {
         type: "invoke",
@@ -69,19 +63,19 @@ export async function executeGasless(
       },
       parameters: {
         version: "0x1",
-        fee_mode: { mode: "sponsored" },
+        feeMode: { mode: "sponsored" },
       },
     });
 
     const { typed_data, parameters } = buildResult;
 
-    // 2. User sign typed data — wallet popup, tanpa gas
+    // 2. User sign — wallet popup, tidak ada gas
     const signature = await account.signMessage(typed_data);
-    const sigArray = (
-      Array.isArray(signature)
-        ? signature.map(String)
-        : [String(signature.r), String(signature.s)]
-    ).map(toHex); // AVNU requires hex strings, not decimal
+
+    // Normalize signature ke array of hex strings (handle berbagai format starknet.js)
+    const sigArray: string[] = Array.isArray(signature)
+      ? signature.map((s: any) => toHex(s.toString()))
+      : [toHex(signature.r.toString()), toHex(signature.s.toString())];
 
     // 3. Execute — AVNU relay tx, bayar gas sendiri
     const execResult = await paymasterRpc("paymaster_executeTransaction", {

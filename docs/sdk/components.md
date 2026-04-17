@@ -4,6 +4,34 @@ All components are `'use client'` — they require React 18+ and must run in the
 
 ---
 
+## ConnectButton
+
+Multi-wallet connection button with modal, address display, copy-to-clipboard, faucet link, and disconnect.
+
+```tsx
+import { ConnectButton } from '@starkpay/sdk'
+
+<ConnectButton />
+<ConnectButton label="Sign In" />
+```
+
+### Props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `label` | `string` | `'Connect Wallet'` | Custom button label |
+
+### Features
+
+- Modal with **Argent X**, **Braavos**, and **Argent Web Wallet** options
+- Connected state shows address pill with dropdown menu
+- Copy address to clipboard
+- Link to claim testnet faucet ETH
+- Disconnect wallet
+- Mobile-aware: detects iOS/Android and links to app store
+
+---
+
 ## StarkPayButton
 
 The all-in-one subscribe/cancel button. Automatically fetches plan price from the contract and detects the user's subscription status.
@@ -135,4 +163,13 @@ import { MerchantDashboard } from '@starkpay/sdk'
 
 | Prop | Type | Description |
 |---|---|---|
-| `merchantAddress` | `string` | The merchant's wallet address |
+| `merchantName` | `string` | Display name for the merchant (default: `'Merchant'`) |
+
+### Features
+
+- **4 KPI cards**: Total Revenue, Withdrawable Balance (green), Active Subscribers, Total Transactions
+- **Withdraw button** — disabled if balance is 0
+- **Download PDF report** — one-click revenue report generation
+- Connected wallet address display
+- Loading skeleton while fetching
+- "Connect wallet" prompt if not connected

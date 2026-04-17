@@ -3,9 +3,7 @@
  * Frontend kirim request ke /api/paymaster, route ini forward ke AVNU dengan API key.
  */
 
-const AVNU_PAYMASTER = process.env.NODE_ENV === "production"
-  ? "https://starknet.paymaster.avnu.fi"
-  : "https://sepolia.paymaster.avnu.fi";
+const AVNU_PAYMASTER = "https://sepolia.paymaster.avnu.fi";
 
 export async function POST(request: Request) {
   const apiKey = process.env.AVNU_API_KEY;
