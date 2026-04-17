@@ -63,7 +63,7 @@ export async function executeGasless(
       },
       parameters: {
         version: "0x1",
-        feeMode: { mode: "sponsored" },
+        fee_mode: { mode: "sponsored" },
       },
     });
 
