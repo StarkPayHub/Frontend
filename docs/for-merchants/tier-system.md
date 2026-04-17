@@ -97,3 +97,17 @@ function TierBadge() {
 To move from Free → Starter, subscribe to **Plan ID 1** on the pricing page. The tier upgrade takes effect immediately after your subscription is confirmed on-chain.
 
 This creates a recursive use of the protocol: merchants pay StarkPayHub in USDC to unlock higher plan limits, just like their own users pay them.
+
+---
+
+## What Happens When Your Tier Subscription Expires
+
+If your StarkPay tier subscription expires and you have more active plans than the free tier allows (1 plan), your **revenue withdrawal will be blocked** until you renew.
+
+- Your plans keep running normally — subscribers are not affected
+- Revenue keeps accumulating in the contract
+- You just cannot withdraw until your tier is renewed
+
+To unblock withdrawal, simply re-subscribe to your tier plan. The block lifts immediately.
+
+> **Your funds are always safe.** The contract owner cannot access merchant balances. The withdrawal block exists to prevent merchants from creating plans on a paid tier, letting it expire, and continuing to collect revenue for free.

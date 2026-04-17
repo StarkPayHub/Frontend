@@ -4,12 +4,12 @@
 
 | Contract | Address |
 |---|---|
-| **StarkPay** | `0x0156aa73efd3389c5552be7c61e07faa7bdefca67af1f0e604c77ed3c1fd86ad` |
-| **MockUSDC** | `0x03f2e44f91a2994b1748473aebe2512a280a4ada60df57d31886d3faf95a0776` |
+| **StarkPay** | `0x03038926f97a7410fcd8630938080c6e2de65a1e7c0cfedcfaeffbebbae11633` |
+| **MockUSDC** | `0x021ab8a417e9cb94bf02ff0595bca7506d1237ffed6b5f80ad39460368955891` |
 
 View on Voyager Explorer:
-- [StarkPay contract →](https://sepolia.voyager.online/contract/0x0156aa73efd3389c5552be7c61e07faa7bdefca67af1f0e604c77ed3c1fd86ad)
-- [MockUSDC contract →](https://sepolia.voyager.online/contract/0x03f2e44f91a2994b1748473aebe2512a280a4ada60df57d31886d3faf95a0776)
+- [StarkPay contract →](https://sepolia.voyager.online/contract/0x03038926f97a7410fcd8630938080c6e2de65a1e7c0cfedcfaeffbebbae11633)
+- [MockUSDC contract →](https://sepolia.voyager.online/contract/0x021ab8a417e9cb94bf02ff0595bca7506d1237ffed6b5f80ad39460368955891)
 
 ---
 
@@ -46,12 +46,10 @@ MockUSDC can be minted freely on Sepolia for testing. Use the "Claim 100 Free US
 
 ```bash
 starkli invoke \
-  0x03f2e44f91a2994b1748473aebe2512a280a4ada60df57d31886d3faf95a0776 \
-  mint \
-  <YOUR_WALLET_ADDRESS> \
-  u256:100000000
+  0x021ab8a417e9cb94bf02ff0595bca7506d1237ffed6b5f80ad39460368955891 \
+  claim_faucet
 
-# This mints 100 USDC (100_000_000 in 6-decimal micro-units)
+# Claims 100 USDC — once per wallet address
 ```
 
 Need Sepolia ETH/STRK for gas? → [faucet.starknet.io](https://faucet.starknet.io)

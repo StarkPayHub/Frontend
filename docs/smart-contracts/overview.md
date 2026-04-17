@@ -122,19 +122,27 @@ erDiagram
 | Event | Fields | Emitted When |
 |---|---|---|
 | `PlanCreated` | `plan_id, merchant, price, interval` | New plan created |
-| `SubscriptionCreated` | `user, plan_id, start, period_end` | User subscribes |
-| `SubscriptionRenewed` | `user, plan_id, new_period_end` | Keeper renews successfully |
-| `PaymentFailed` | `user, plan_id` | Renewal fails (insufficient USDC) |
+| `SubscriptionCreated` | `user, plan_id, amount, period_end` | User subscribes |
+| `RenewalExecuted` | `user, plan_id, amount, new_period_end` | Keeper renews successfully |
+| `PaymentFailed` | `user, plan_id, reason` | Renewal fails — subscription deactivated |
 | `SubscriptionCancelled` | `user, plan_id` | User cancels |
-| `Withdrawn` | `merchant, amount` | Merchant withdraws |
+| `WithdrawalMade` | `merchant, amount` | Merchant withdraws |
+| `TierLimitUpdated` | `plan_id, new_limit` | Owner updates tier plan limit |
+| `ProtocolFeeWithdrawn` | `owner, amount` | Owner withdraws protocol fees |
+| `ProtocolFeeUpdated` | `old_bps, new_bps` | Owner changes protocol fee rate |
 
 ---
 
 ## Key Design Decisions
 
-### execute_renewal Does Not Revert
+### execute_renewal Deactivates on Payment Failure
 
-If a user has insufficient USDC for renewal, `execute_renewal` emits `PaymentFailed` and continues — it does not `panic!`. This allows the keeper to batch renewals for many users without a single failed payment halting the entire batch.
+If a user has insufficient USDC for renewal, `execute_renewal` sets `subscription.active = false`, decrements the merchant's subscriber count, and emits `PaymentFailed` — it does not `panic!`. This serves two purposes:
+
+1. The keeper bot can batch renewals without a single failure halting the entire batch
+2. The bot will not waste gas retrying the same failed subscription — `active = false` causes the next call to revert at the guard check
+
+The user can re-subscribe at any time after topping up their USDC balance.
 
 ### Check-Before-Transfer Reentrancy Guard
 
@@ -144,6 +152,12 @@ If a user has insufficient USDC for renewal, `execute_renewal` emits `PaymentFai
 
 Subscriptions are stored at `Map<(ContractAddress, u64), Subscription>` using a composite key of `(user_address, plan_id)`. Each user can have at most one active subscription per plan.
 
-### MockUSDC Public Mint
+### Protocol Fee
 
-`MockUSDC` inherits OpenZeppelin's `ERC20Component` and adds a permissionless `mint()` function for testnet use. This is intentionally not access-controlled — it's testnet only.
+A 2% protocol fee (configurable by owner, max 10%) is deducted from every payment at the time of `subscribe` and `execute_renewal`. Merchants receive the remaining 98%. Fees accumulate in `protocol_balance` and are withdrawn separately by the owner via `withdraw_protocol_fee`.
+
+### MockUSDC Faucet
+
+`MockUSDC` inherits OpenZeppelin's `ERC20Component`. It has two mint paths:
+- `claim_faucet()` — permissionless, mints 100 USDC once per wallet address
+- `mint(to, amount)` — owner-only, used for server-side faucet top-ups
