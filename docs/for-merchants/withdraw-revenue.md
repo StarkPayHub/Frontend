@@ -19,7 +19,7 @@ The full withdrawable balance is sent to your wallet in one transaction.
 
 ```bash
 starkli invoke \
-  0x058a1e8058620d285047c7ee3df15804898070e6788fbffe004a29ffa554aa2c \
+  0x0156aa73efd3389c5552be7c61e07faa7bdefca67af1f0e604c77ed3c1fd86ad \
   withdraw
 ```
 

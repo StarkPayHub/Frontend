@@ -16,7 +16,7 @@
 |---|---|
 | Voyager (Sepolia) | [sepolia.voyager.online](https://sepolia.voyager.online) |
 | StarkScan (Sepolia) | [sepolia.starkscan.co](https://sepolia.starkscan.co) |
-| StarkPay Contract | [Voyager →](https://sepolia.voyager.online/contract/0x058a1e8058620d285047c7ee3df15804898070e6788fbffe004a29ffa554aa2c) |
+| StarkPay Contract | [Voyager →](https://sepolia.voyager.online/contract/0x0156aa73efd3389c5552be7c61e07faa7bdefca67af1f0e604c77ed3c1fd86ad) |
 | MockUSDC Contract | [Voyager →](https://sepolia.voyager.online/contract/0x03f2e44f91a2994b1748473aebe2512a280a4ada60df57d31886d3faf95a0776) |
 
 ---

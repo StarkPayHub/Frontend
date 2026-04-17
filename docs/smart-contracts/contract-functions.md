@@ -2,7 +2,7 @@
 
 Full reference for all read and write functions in the StarkPay contract.
 
-**Contract address (Sepolia):** `0x058a1e8058620d285047c7ee3df15804898070e6788fbffe004a29ffa554aa2c`
+**Contract address (Sepolia):** `0x0156aa73efd3389c5552be7c61e07faa7bdefca67af1f0e604c77ed3c1fd86ad`
 
 ---
 

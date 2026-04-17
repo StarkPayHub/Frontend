@@ -29,7 +29,7 @@ Your plan appears on the pricing page immediately after the transaction is confi
 ```bash
 # Create plan: name="Pro", price=20 USDC, interval=30 days (2592000 seconds)
 starkli invoke \
-  0x03038926f97a7410fcd8630938080c6e2de65a1e7c0cfedcfaeffbebbae11633 \
+  0x0156aa73efd3389c5552be7c61e07faa7bdefca67af1f0e604c77ed3c1fd86ad \
   create_plan \
   0x50726f \
   u256:20000000 \

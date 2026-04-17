@@ -1117,8 +1117,114 @@ function SectionWithdrawals({ account, address }: { account: any; address?: stri
           </table>
         )}
       </div>
+      {/* Protocol Fee — owner only */}
+      <ProtocolFeeCard account={account} address={address} />
+
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
     </div>
+  );
+}
+
+// ── Protocol Fee Card (owner only) ────────────────────────────────────────────
+const OWNER_ADDRESS = "0x00e4693257fdff3adb413cb4021c6d878140ba717de63b2333af20bdee39b524";
+
+function ProtocolFeeCard({ account, address }: { account: any; address?: string }) {
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const { data: feeBalance, refetch: refetchBalance } = useReadContract({
+    address: STARKPAY_ADDRESS as `0x${string}`,
+    abi: starkpayAbi,
+    functionName: "get_protocol_balance",
+    args: [],
+    watch: true,
+  });
+
+  const { data: feeBps } = useReadContract({
+    address: STARKPAY_ADDRESS as `0x${string}`,
+    abi: starkpayAbi,
+    functionName: "get_protocol_fee_bps",
+    args: [],
+    watch: true,
+  });
+
+  const isOwner = address ? addrEq(address, OWNER_ADDRESS) : false;
+  if (!isOwner) return null;
+
+  const balance = BigInt(feeBalance?.toString() ?? "0");
+  const bps = Number(feeBps?.toString() ?? "0");
+  const balanceDisplay = usdcDisplay(balance);
+  const feePercent = (bps / 100).toFixed(2);
+
+  async function handleWithdrawFee() {
+    if (!account) return;
+    setWithdrawing(true);
+    try {
+      const result = await account.execute([{ contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw_protocol_fee", calldata: [] }]);
+      setTxHash(result.transaction_hash);
+      setToast({ message: "Protocol fee withdrawn!", type: "success" });
+      setTimeout(() => refetchBalance(), 3000);
+    } catch (err) {
+      console.error("Protocol fee withdraw failed:", err);
+      setToast({ message: "Withdrawal failed.", type: "error" });
+    } finally {
+      setWithdrawing(false);
+    }
+  }
+
+  return (
+    <>
+      <div style={{
+        ...glassCard,
+        border: "0.5px solid rgba(251,191,36,0.2)",
+        padding: "20px 24px",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fbbf24", display: "inline-block", boxShadow: "0 0 8px rgba(251,191,36,0.6)" }} />
+          <p style={{ fontSize: 13, fontWeight: 600, color: "#fbbf24", fontFamily: "'Syne',sans-serif", letterSpacing: "0.04em" }}>PROTOCOL FEE (Owner Only)</p>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
+          <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(251,191,36,0.06)", border: "0.5px solid rgba(251,191,36,0.15)" }}>
+            <p style={{ fontSize: 10, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(251,191,36,0.5)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Accumulated Fee</p>
+            <p style={{ fontSize: "clamp(1.1rem,4vw,1.5rem)", fontWeight: 700, color: "#fbbf24" }}>{balanceDisplay}</p>
+          </div>
+          <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(251,191,36,0.06)", border: "0.5px solid rgba(251,191,36,0.15)" }}>
+            <p style={{ fontSize: 10, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(251,191,36,0.5)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Fee Rate</p>
+            <p style={{ fontSize: "clamp(1.1rem,4vw,1.5rem)", fontWeight: 700, color: "#fbbf24" }}>{feePercent}%</p>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <p style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "rgba(161,161,170,0.4)" }}>
+            Sent to deployer wallet
+          </p>
+          {txHash ? (
+            <a href={`https://sepolia.voyager.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: 11, fontFamily: "ui-monospace,'SF Mono',monospace", color: "#fbbf24", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+              ✓ Withdrawn · View tx ↗
+            </a>
+          ) : (
+            <button onClick={handleWithdrawFee} disabled={withdrawing || !account || balance === 0n}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12,
+                background: "rgba(251,191,36,0.15)", color: "#fbbf24", fontWeight: 600, fontSize: 13,
+                border: "1px solid rgba(251,191,36,0.3)", cursor: "pointer", flexShrink: 0,
+                opacity: (withdrawing || !account || balance === 0n) ? 0.5 : 1,
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(251,191,36,0.25)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(251,191,36,0.15)"; }}
+            >
+              {IcoWithdraw}
+              {withdrawing ? "Withdrawing…" : "Withdraw Fee"}
+            </button>
+          )}
+        </div>
+      </div>
+      {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
+    </>
   );
 }
 
