@@ -24,7 +24,7 @@ export const PLANS = [
     interval: 2592000,
     features: [
       "Unlimited subscribers",
-      "Unlimited plans",
+      "10 plans",
       "Gasless via AVNU Paymaster",
       "Merchant dashboard + analytics",
       "@starkpay/sdk access",
@@ -38,6 +38,7 @@ export const PLANS = [
     priceDisplay: "$99",
     interval: 2592000,
     features: [
+      "Unlimited plans"
       "Custom contract deployment",
       "Dedicated keeper bot infra",
       "White-label SDK",
