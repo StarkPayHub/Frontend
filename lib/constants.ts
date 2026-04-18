@@ -10,7 +10,7 @@ export const PLANS = [
     interval: 2592000, // 30 days in seconds
     features: [
       "Up to 50 active subscribers",
-      "1 subscription plan",
+      "10 subscription plan",
       "Auto-renewal via keeper",
       "MockUSDC testnet support",
     ],
