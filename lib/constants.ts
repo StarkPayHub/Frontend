@@ -10,7 +10,7 @@ export const PLANS = [
     interval: 2592000, // 30 days in seconds
     features: [
       "Up to 50 active subscribers",
-      "10 subscription plan",
+      "1 subscription plan",
       "Auto-renewal via keeper",
       "MockUSDC testnet support",
     ],
@@ -24,7 +24,7 @@ export const PLANS = [
     interval: 2592000,
     features: [
       "Unlimited subscribers",
-      "10 plans",
+      "Unlimted subscription plans",
       "Gasless via AVNU Paymaster",
       "Merchant dashboard + analytics",
       "@starkpay/sdk access",
