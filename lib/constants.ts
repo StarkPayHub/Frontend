@@ -38,7 +38,7 @@ export const PLANS = [
     priceDisplay: "$99",
     interval: 2592000,
     features: [
-      "Unlimited plans"
+      "Unlimited plans",
       "Custom contract deployment",
       "Dedicated keeper bot infra",
       "White-label SDK",
