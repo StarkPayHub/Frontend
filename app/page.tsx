@@ -187,6 +187,20 @@ export default function Home() {
               >
                 How It Works →
               </Link>
+
+              <a href="https://starkpayhub.gitbook.io/starkpayhub-docs" target="_blank" rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  color: "rgba(167,139,250,0.5)",
+                  fontSize: "0.85rem", fontWeight: 500,
+                  textDecoration: "underline", textDecorationColor: "rgba(139,92,246,0.25)",
+                  textUnderlineOffset: 4, transition: "color 0.2s",
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#c4b5fd"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(167,139,250,0.5)"; }}
+              >
+                📖 Read the Docs →
+              </a>
             </div>
           </div>
         </section>

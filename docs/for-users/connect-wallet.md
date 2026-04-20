@@ -6,12 +6,15 @@ StarkPayHub works with Starknet-native wallets. You need one of these browser ex
 
 ## Supported Wallets
 
-| Wallet | Install |
-|---|---|
-| **Argent X** | [Chrome Web Store →](https://chrome.google.com/webstore/detail/argent-x/dlcobpjiigpikoobohmabehhmhfoodbb) |
-| **Braavos** | [Chrome Web Store →](https://chrome.google.com/webstore/detail/braavos-smart-wallet/jnlgamecbpmbajjfhmmmlhejkemejdma) |
+| Wallet | Network | Install |
+|---|---|---|
+| **Argent X** | Sepolia Testnet + Mainnet | [Chrome Web Store →](https://chrome.google.com/webstore/detail/argent-x/dlcobpjiigpikoobohmabehhmhfoodbb) |
+| **Argent Web Wallet** | Mainnet only | [app.argent.xyz →](https://app.argent.xyz) |
+| **Braavos** | Sepolia Testnet + Mainnet | [Chrome Web Store →](https://chrome.google.com/webstore/detail/braavos-smart-wallet/jnlgamecbpmbajjfhmmmlhejkemejdma) |
 
 > **Note**: MetaMask and other Ethereum wallets are not supported. Starknet uses a different account model.
+
+> **Argent Web Wallet** does not require a browser extension — it runs entirely in the browser. However, it only supports Starknet Mainnet; use Argent X or Braavos for Sepolia Testnet.
 
 ---
 
@@ -25,7 +28,11 @@ Download and install Argent X or Braavos from the Chrome Web Store. Follow the e
 
 Both wallets include Sepolia Testnet by default. Make sure you switch to **Sepolia** in the network selector (not Starknet Mainnet).
 
-![Argent X — Starknet Sepolia network selected](../images/wallet-argent-network.png)
+### 3. Get gas tokens
+
+You need a small amount of ETH or STRK on Sepolia to pay gas fees.
+
+→ Claim free testnet tokens at [faucet.starknet.io](https://faucet.starknet.io)
 
 ### 3. Get gas tokens
 
@@ -38,8 +45,6 @@ You need a small amount of ETH or STRK on Sepolia to pay gas fees.
 ### 4. Connect to StarkPayHub
 
 Click **Connect Wallet** in the top-right corner of [starkpayhub.vercel.app](https://starkpayhub.vercel.app). Your wallet extension will prompt you to approve the connection.
-
-![Wallet connect popup](../images/wallet-connect-popup.jpeg)
 
 ---
 

@@ -390,8 +390,8 @@ function SectionSubscriptions() {
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(20,14,42,0.85)"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(12,9,28,0.7)"; }}
               >
-                {/* Top row on mobile: icon + info + status */}
-                <div style={{ display: "flex", alignItems: "center", gap: 14, width: "100%", minWidth: 0 }}>
+                {/* Icon + Info */}
+                <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 0 }}>
                   {/* Icon */}
                   <div style={{
                     width: 40, height: 40, borderRadius: 12, flexShrink: 0,
@@ -408,38 +408,37 @@ function SectionSubscriptions() {
                       {isMobile ? sub.priceDisplay + " / mo" : `Renews ${formatRenewal(sub.currentPeriodEnd)} · ${sub.priceDisplay} / mo`}
                     </p>
                   </div>
-
-                  {/* Status */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: accentColor, boxShadow: `0 0 6px ${accentColor}`, display: "block" }} />
-                    <span style={{ fontSize: 11.5, fontFamily: "ui-monospace,'SF Mono',monospace", color: accentColor }}>
-                      {isActive ? "Active" : "Expired"}
-                    </span>
-                  </div>
                 </div>
 
-                {/* Bottom row on mobile: renewal + cancel */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: 8 }}>
+                {/* Status + Cancel — always at the right edge */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, ...(isMobile ? { width: "100%", justifyContent: "space-between" } : {}) }}>
                   {isMobile && (
                     <span style={{ fontSize: 11, color: "rgba(113,113,122,0.6)" }}>
                       Renews {formatRenewal(sub.currentPeriodEnd)}
                     </span>
                   )}
-                  <button
-                    onClick={() => handleCancel(sub.planId, sub.planName)}
-                    disabled={cancelling === sub.planId || !account}
-                    style={{
-                      padding: "7px 14px", borderRadius: 9, flexShrink: 0, cursor: "pointer",
-                      background: "transparent", border: "0.5px solid rgba(255,255,255,0.1)",
-                      color: "rgba(113,113,122,0.6)", fontSize: 12, transition: "all 0.15s",
-                      opacity: cancelling === sub.planId ? 0.5 : 1,
-                      marginLeft: isMobile ? "auto" : 0,
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.35)"; e.currentTarget.style.background = "rgba(239,68,68,0.06)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = "rgba(113,113,122,0.6)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.background = "transparent"; }}
-                  >
-                    {cancelling === sub.planId ? "Cancelling…" : "Cancel"}
-                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: isMobile ? "auto" : 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: accentColor, boxShadow: `0 0 6px ${accentColor}`, display: "block" }} />
+                      <span style={{ fontSize: 11.5, fontFamily: "ui-monospace,'SF Mono',monospace", color: accentColor }}>
+                        {isActive ? "Active" : "Expired"}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleCancel(sub.planId, sub.planName)}
+                      disabled={cancelling === sub.planId || !account}
+                      style={{
+                        padding: "7px 14px", borderRadius: 9, flexShrink: 0, cursor: "pointer",
+                        background: "transparent", border: "0.5px solid rgba(255,255,255,0.1)",
+                        color: "rgba(113,113,122,0.6)", fontSize: 12, transition: "all 0.15s",
+                        opacity: cancelling === sub.planId ? 0.5 : 1,
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.35)"; e.currentTarget.style.background = "rgba(239,68,68,0.06)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = "rgba(113,113,122,0.6)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.background = "transparent"; }}
+                    >
+                      {cancelling === sub.planId ? "Cancelling…" : "Cancel"}
+                    </button>
+                  </div>
                 </div>
               </div>
             );

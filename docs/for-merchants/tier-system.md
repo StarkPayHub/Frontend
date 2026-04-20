@@ -6,12 +6,12 @@ StarkPayHub uses its own subscription protocol to gate merchant features. To cre
 
 ## Tier Overview
 
-| Tier | How to Unlock | Max Plans You Can Create |
-|---|---|---|
-| **Free** | Default (no subscription needed) | 1 plan | — |
-| **Starter** | Subscribe to Plan ID 1 ($10/mo) | 3 plans | — |
-| **Pro** | Subscribe to Plan ID 2 ($30/mo) | 10 plans | — |
-| **Enterprise** | Subscribe to Plan ID 3 ($99/mo) | Unlimited | Gasless for subscribers |
+| Tier | Price | How to Unlock | Max Plans You Can Create |
+|---|---|---|---|
+| **Free** | — | Default (no subscription needed) | 1 plan |
+| **Starter** | $10 / mo | Subscribe to Plan ID 1 | 3 plans |
+| **Pro** | $30 / mo | Subscribe to Plan ID 2 | 10 plans |
+| **Enterprise** | $99 / mo | Subscribe to Plan ID 3 | Unlimited |
 
 ---
 
@@ -20,9 +20,9 @@ StarkPayHub uses its own subscription protocol to gate merchant features. To cre
 ```mermaid
 flowchart LR
     F["Free<br/><br/>1 plan<br/>(default)"]
-    S["Starter<br/><br/>3 plans"]
-    P["Pro<br/><br/>10 plans"]
-    E["Enterprise<br/><br/>Unlimited"]
+    S["Starter<br/>$10/mo<br/><br/>3 plans"]
+    P["Pro<br/>$30/mo<br/><br/>10 plans"]
+    E["Enterprise<br/>$99/mo<br/><br/>Unlimited"]
 
     F -->|"Subscribe to Plan 1"| S
     S -->|"Subscribe to Plan 2"| P
@@ -97,36 +97,3 @@ function TierBadge() {
 To move from Free → Starter, subscribe to **Plan ID 1** on the pricing page. The tier upgrade takes effect immediately after your subscription is confirmed on-chain.
 
 This creates a recursive use of the protocol: merchants pay StarkPayHub in USDC to unlock higher plan limits, just like their own users pay them.
-
----
-
-## Enterprise Exclusive: Gasless Subscriptions
-
-Enterprise tier merchants get an additional benefit: **their subscribers pay zero gas**. When a developer enables `gasless={true}` in the SDK, StarkPayHub automatically checks on-chain whether the plan's merchant is on Enterprise tier.
-
-- **Enterprise merchant** → gas is sponsored by AVNU Paymaster → user pays only USDC
-- **Non-Enterprise merchant** → SDK falls back to normal execution → user pays gas
-
-This happens transparently — no API key or extra setup needed from the developer. Just add `gasless` to the provider:
-
-```tsx
-<StarkPayProvider gasless>
-  <App />
-</StarkPayProvider>
-```
-
-> Gasless sponsorship is available on **Sepolia testnet** (free, unlimited). Mainnet sponsorship uses AVNU credits.
-
----
-
-## What Happens When Your Tier Subscription Expires
-
-If your StarkPay tier subscription expires and you have more active plans than the free tier allows (1 plan), your **revenue withdrawal will be blocked** until you renew.
-
-- Your plans keep running normally — subscribers are not affected
-- Revenue keeps accumulating in the contract
-- You just cannot withdraw until your tier is renewed
-
-To unblock withdrawal, simply re-subscribe to your tier plan. The block lifts immediately.
-
-> **Your funds are always safe.** The contract owner cannot access merchant balances. The withdrawal block exists to prevent merchants from creating plans on a paid tier, letting it expire, and continuing to collect revenue for free.

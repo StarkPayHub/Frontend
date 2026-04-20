@@ -12,16 +12,16 @@ flowchart TD
     B --> C[Deduplicate by user + plan_id]
     C --> D{For each subscription}
 
-    D --> E{current_period_end < now?}
-    E -- No --> F([Log: Skipped])
-    E -- Yes --> G[Call execute_renewal\nuser, plan_id]
+    D --> E{active AND\ncurrent_period_end < now?}
+    E -- No --> F([Skip])
+    E -- Yes --> G[Read user USDC balance\noff-chain view call — no gas]
 
-    G --> H{User has enough USDC?}
-    H -- Yes --> I[transferFrom user → StarkPay<br/>Update current_period_end]
-    H -- No --> J[Set active = false<br/>Emit PaymentFailed]
+    G --> H{balance >= plan price?}
+    H -- Yes --> I[Call execute_renewal\nuser, plan_id]
+    H -- No --> J[Log: Insufficient balance\nno on-chain tx — gas saved]
 
-    I --> K([Log: Renewed ✓])
-    J --> L([Log: Failed ✗])
+    I --> K([SubscriptionRenewed ✓\ncurrent_period_end updated])
+    J --> L([Subscription skipped\nwill retry next run])
 
     F & K & L --> D
     D -->|all done| M([Summary: N renewed · M skipped · P failed])
@@ -57,16 +57,16 @@ Sample output:
 
 ```mermaid
 flowchart LR
-    A([execute_renewal called]) --> B{USDC balance >= price?}
-    B -- Yes --> C[transferFrom succeeds]
-    B -- No --> D[No revert — continues]
-    C --> E[Emit SubscriptionRenewed\nUpdate period_end]
-    D --> F[Emit PaymentFailed\nSet active = false]
+    A([Keeper reads USDC balance\noff-chain view — free]) --> B{balance >= plan price?}
+    B -- Yes --> C[Call execute_renewal\non-chain tx]
+    B -- No --> D[Log: Insufficient balance\nno tx sent — gas saved]
+    C --> E[Emit SubscriptionRenewed\nperiod_end updated]
+    D --> F[Subscription skipped\nwill retry next run]
     E --> G([Next subscription])
     F --> G
 ```
 
-This design allows one keeper to handle thousands of renewals without a single failure blocking others.
+The keeper pre-checks USDC balance with a free off-chain `balanceOf` view call before submitting any transaction. If a user's balance is insufficient, no on-chain call is made — gas is saved, and the failure is logged server-side. The subscription is skipped until the user tops up their balance.
 
 ---
 

@@ -34,7 +34,7 @@ Connects their Argent X or Braavos wallet. Subscribes to a plan with a single mu
 ### 3. Keeper Bot
 A permissionless bot that anyone can run. It reads `SubscriptionCreated` events from the chain, finds subscriptions where `current_period_end < now`, and calls `execute_renewal(user, plan_id)` to charge the next period.
 
-Crucially, `execute_renewal` **does not revert on failure** — if a user has insufficient USDC, it emits a `PaymentFailed` event and moves on. This lets the keeper batch renewals for hundreds of users in one run.
+Before calling `execute_renewal`, the keeper pre-checks each user's USDC balance with a free off-chain view call. If balance is insufficient, the subscription is skipped — no transaction is sent and no gas is wasted. Only subscriptions with sufficient balance trigger an on-chain renewal.
 
 ---
 
@@ -68,22 +68,22 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor Keeper
-    participant SP as StarkPay Contract
     participant USDC as MockUSDC Contract
+    participant SP as StarkPay Contract
 
     loop Every hour
         Keeper->>SP: fetch SubscriptionCreated events
-        Keeper->>Keeper: filter: current_period_end < now
+        Keeper->>Keeper: filter: active AND current_period_end < now
+        Keeper->>USDC: balanceOf(user) — off-chain view, no gas
 
-        alt User has enough USDC
+        alt balance >= plan price
             Keeper->>SP: execute_renewal(user, plan_id)
             SP->>USDC: transferFrom(user, self, price)
             SP-->>SP: update current_period_end += interval
             SP-->>Keeper: emit SubscriptionRenewed ✓
-        else Insufficient USDC
-            Keeper->>SP: execute_renewal(user, plan_id)
-            SP-->>SP: active = false
-            SP-->>Keeper: emit PaymentFailed ✗
+        else balance insufficient
+            Keeper->>Keeper: log — skip, no tx sent
+            note over Keeper: gas saved
         end
     end
 ```
