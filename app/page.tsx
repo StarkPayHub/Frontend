@@ -199,8 +199,9 @@ export default function Home() {
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#c4b5fd"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(167,139,250,0.5)"; }}
               >
-                📖 Read the Docs →
+                Read the Docs →
               </a>
+
             </div>
           </div>
         </section>
