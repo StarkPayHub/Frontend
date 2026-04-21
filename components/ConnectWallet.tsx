@@ -92,7 +92,7 @@ export function ConnectWallet() {
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
   const szWallet = useStarkZapWallet();
-  const effectiveAddress = address ?? szWallet.address ?? undefined;
+  const effectiveAddress = (address ?? szWallet.address ?? undefined) as `0x${string}` | undefined;
   const isConnected = status === "connected" || szWallet.connected;
   const { data: strkBalance } = useBalance({ address: effectiveAddress, token: STRK_ADDRESS as `0x${string}`, watch: true });
   const { data: usdcBalance } = useBalance({ address: effectiveAddress, token: USDC_ADDRESS as `0x${string}`, watch: true });
@@ -486,7 +486,7 @@ export function ConnectWallet() {
             <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
           </div>
 
-          {connectors.map((connector) => {
+          {connectors.map((connector: any) => {
             const isLoading = connecting === connector.id;
             const icon = typeof connector.icon === "string" ? connector.icon
                        : (connector.icon as any)?.light ?? (connector.icon as any)?.dark ?? undefined;
