@@ -317,7 +317,7 @@ function SectionSubscriptions() {
       };
       const result = szWallet.connected
         ? await szWallet.execute([call])
-        : await account.execute([call]);
+        : await account!.execute([call]);
       setToast({ message: `${planName} cancelled · TX: ${result.transaction_hash.slice(0, 14)}…`, type: "success" });
       setTimeout(() => refetch(), 3000);
     } catch (err: any) {

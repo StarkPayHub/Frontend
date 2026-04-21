@@ -353,7 +353,7 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
         const result = await szWallet.execute([call]);
         transaction_hash = result.transaction_hash;
       } else {
-        const result = await account.execute([call]);
+        const result = await account!.execute([call]);
         transaction_hash = result.transaction_hash;
       }
       setTxHash(transaction_hash);
@@ -1046,7 +1046,7 @@ function SectionWithdrawals({ account, address }: { account: any; address?: stri
         const result = await szWallet.execute([call]);
         transaction_hash = result.transaction_hash;
       } else {
-        const result = await account.execute([call]);
+        const result = await account!.execute([call]);
         transaction_hash = result.transaction_hash;
       }
       setTxHash(transaction_hash);
@@ -1200,7 +1200,7 @@ function ProtocolFeeCard({ account, address }: { account: any; address?: string 
       const call = { contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw_protocol_fee", calldata: [] };
       const result = szWallet.connected
         ? await szWallet.execute([call])
-        : await account.execute([call]);
+        : await account!.execute([call]);
       setTxHash(result.transaction_hash);
       setToast({ message: "Protocol fee withdrawn!", type: "success" });
       setTimeout(() => refetchBalance(), 3000);
