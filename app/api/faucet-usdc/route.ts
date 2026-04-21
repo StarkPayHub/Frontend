@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-// Use starknet-v8 (aliased via npm install) — v6 can't sign Starknet 0.14 v3 txns
-import { RpcProvider, Account, cairo, CallData } from 'starknet-v9'
+import { RpcProvider, Account, cairo, CallData } from 'starknet-v8'
 
 const RPC_URL = process.env.STARKNET_RPC
-  ?? 'https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_8/demo'
+  ?? 'https://starknet-sepolia-rpc.publicnode.com'
 
 const MOCK_USDC_ADDRESS = '0x021ab8a417e9cb94bf02ff0595bca7506d1237ffed6b5f80ad39460368955891'
 
@@ -14,18 +13,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid address' }, { status: 400 })
   }
 
-  const privateKey = process.env.KEEPER_PRIVATE_KEY
-  const accountAddress = process.env.KEEPER_ADDRESS
+  const privateKey = process.env.FAUCET_PRIVATE_KEY
+  const accountAddress = process.env.FAUCET_ADDRESS
   if (!privateKey || !accountAddress) {
     return NextResponse.json(
-      { error: 'Keeper not configured. Set KEEPER_PRIVATE_KEY and KEEPER_ADDRESS.' },
+      { error: 'Faucet not configured. Set FAUCET_PRIVATE_KEY and FAUCET_ADDRESS.' },
       { status: 500 },
     )
   }
 
   try {
     const provider = new RpcProvider({ nodeUrl: RPC_URL })
-    const account = new Account({ provider, address: accountAddress, signer: privateKey })
+    const account = new Account({ provider, address: accountAddress, signer: privateKey, cairoVersion: '1' })
     const calldata = CallData.compile([address, cairo.uint256(100_000_000)])
     const result = await account.execute([
       { contractAddress: MOCK_USDC_ADDRESS, entrypoint: 'mint', calldata },

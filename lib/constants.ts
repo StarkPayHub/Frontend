@@ -1,5 +1,5 @@
 export const STARKNET_RPC =
-  "https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_8/demo";
+  process.env.NEXT_PUBLIC_STARKNET_RPC ?? "https://starknet-sepolia-rpc.publicnode.com";
 
 export const PLANS = [
   {

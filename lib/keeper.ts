@@ -10,7 +10,7 @@ import { createKeeperWallet, executeGaslessStarkZap } from './starkzap-sdk'
 
 // ─── Config (from env) ──────────────────────────────────────────────────────
 const RPC_URL = process.env.STARKNET_RPC
-  ?? 'https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_8/demo'
+  ?? 'https://starknet-sepolia-rpc.publicnode.com'
 
 const DEPLOY_BLOCK = Number(process.env.DEPLOY_BLOCK ?? 0)
 
