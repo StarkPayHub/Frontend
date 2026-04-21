@@ -60,7 +60,7 @@ export function Navbar() {
   const allMenuLinks = [
     { href: "/", label: "Home" },
     ...links.filter(l => l.href !== "/"),
-    ...(isConnected && hasActiveSub ? [{ href: "/dashboard", label: "Dashboard" }] : []),
+    ...(hasActiveSub ? [{ href: "/dashboard", label: "Dashboard" }] : []),
   ];
 
   return (
@@ -122,7 +122,7 @@ export function Navbar() {
           {/* Desktop: Dashboard + ConnectWallet */}
           {!isMobile && (
             <>
-              {isConnected && hasActiveSub && (
+              {hasActiveSub && (
                 <Link href="/dashboard"
                   style={{
                     display: "flex", alignItems: "center", gap: 6,

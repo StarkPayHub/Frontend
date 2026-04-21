@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useAccount, useDisconnect } from "@starknet-react/core";
+import { useStarkZapWallet } from "@/hooks/useStarkZapWallet";
 import { ClaimUSDC } from "@/components/ClaimUSDC";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { KpiSkeleton, SubRowSkeleton } from "@/components/Skeleton";
@@ -299,20 +300,24 @@ function EmptyState({ icon, title, desc, action }: { icon: React.ReactNode; titl
 // ── Section: My Subscriptions ─────────────────────────────────────────────────
 function SectionSubscriptions() {
   const { account } = useAccount();
+  const szWallet = useStarkZapWallet();
   const isMobile = useIsMobile();
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [cancelling, setCancelling] = useState<number | null>(null);
   const { subscriptions, isLoading, refetch } = useMySubscriptions();
 
   async function handleCancel(planId: number, planName: string) {
-    if (!account) return;
+    if (!account && !szWallet.connected) return;
     setCancelling(planId);
     try {
-      const result = await account.execute([{
+      const call = {
         contractAddress: STARKPAY_ADDRESS,
         entrypoint: "cancel_subscription",
         calldata: [planId.toString()],
-      }]);
+      };
+      const result = szWallet.connected
+        ? await szWallet.execute([call])
+        : await account.execute([call]);
       setToast({ message: `${planName} cancelled · TX: ${result.transaction_hash.slice(0, 14)}…`, type: "success" });
       setTimeout(() => refetch(), 3000);
     } catch (err: any) {
@@ -426,7 +431,7 @@ function SectionSubscriptions() {
                     </div>
                     <button
                       onClick={() => handleCancel(sub.planId, sub.planName)}
-                      disabled={cancelling === sub.planId || !account}
+                      disabled={cancelling === sub.planId || (!account && !szWallet.connected)}
                       style={{
                         padding: "7px 14px", borderRadius: 9, flexShrink: 0, cursor: "pointer",
                         background: "transparent", border: "0.5px solid rgba(255,255,255,0.1)",
@@ -452,7 +457,9 @@ function SectionSubscriptions() {
 
 // ── Section: Payment History ──────────────────────────────────────────────────
 function SectionHistory() {
-  const { address } = useAccount();
+  const { address: snAddr } = useAccount();
+  const { address: szAddr } = useStarkZapWallet();
+  const address = snAddr ?? szAddr ?? undefined;
   const isMobile = useIsMobile();
   const { events: subEvents, isLoading: subLoading } = useSubscriptionEvents();
   const { events: renewalEvents, isLoading: renewLoading } = useRenewalEvents();
@@ -919,11 +926,13 @@ const SECTION_LABEL: Record<Section, string> = {
 };
 
 export default function DashboardPage() {
-  const { address, status } = useAccount();
+  const { address: snAddr, status } = useAccount();
+  const { address: szAddr, connected: szConnected } = useStarkZapWallet();
+  const address = snAddr ?? szAddr ?? undefined;
   const [section, setSection] = useState<Section>("subscriptions");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isAuth = status === "connected";
+  const isAuth = status === "connected" || szConnected;
   const displayId = address;
 
   if (status === "reconnecting") return <DashboardSkeleton />;

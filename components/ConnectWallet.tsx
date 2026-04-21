@@ -1,6 +1,7 @@
 "use client";
 
 import { useAccount, useConnect, useDisconnect, useBalance } from "@starknet-react/core";
+import { useStarkZapWallet } from "@/hooks/useStarkZapWallet";
 
 const STRK_ADDRESS = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 const USDC_ADDRESS = "0x021ab8a417e9cb94bf02ff0595bca7506d1237ffed6b5f80ad39460368955891";
@@ -90,38 +91,51 @@ export function ConnectWallet() {
   const { address, status } = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
-  const { data: strkBalance } = useBalance({ address, token: STRK_ADDRESS as `0x${string}`, watch: true });
-  const { data: usdcBalance } = useBalance({ address, token: USDC_ADDRESS as `0x${string}`, watch: true });
+  const szWallet = useStarkZapWallet();
+  const effectiveAddress = address ?? szWallet.address ?? undefined;
+  const isConnected = status === "connected" || szWallet.connected;
+  const { data: strkBalance } = useBalance({ address: effectiveAddress, token: STRK_ADDRESS as `0x${string}`, watch: true });
+  const { data: usdcBalance } = useBalance({ address: effectiveAddress, token: USDC_ADDRESS as `0x${string}`, watch: true });
   const [open, setOpen] = useState(false);
   const [walletMenu, setWalletMenu] = useState(false);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [claimingUsdc, setClaimingUsdc] = useState(false);
   const [usdcClaimed, setUsdcClaimed] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
   const [activeConnector, setActiveConnector] = useState<typeof connectors[0] | null>(null);
 
   const handleCopy = () => {
-    if (!address) return;
-    navigator.clipboard.writeText(address);
+    if (!effectiveAddress) return;
+    navigator.clipboard.writeText(effectiveAddress);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleClaimUsdc = async () => {
-    if (!address || claimingUsdc) return;
+    if (!effectiveAddress || claimingUsdc) return;
     setClaimingUsdc(true);
+    setClaimError(null);
     try {
       const res = await fetch("/api/faucet-usdc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address }),
+        body: JSON.stringify({ address: effectiveAddress }),
       });
+      const body = await res.json().catch(() => ({}));
       if (res.ok) {
         setUsdcClaimed(true);
         setTimeout(() => setUsdcClaimed(false), 4000);
+      } else {
+        const msg = body?.error ?? `HTTP ${res.status}`;
+        console.error("Faucet error:", msg, body);
+        setClaimError(msg);
+        setTimeout(() => setClaimError(null), 6000);
       }
-    } catch {
-      // silently ignore
+    } catch (err: any) {
+      console.error("Faucet fetch failed:", err);
+      setClaimError(err?.message ?? "Network error");
+      setTimeout(() => setClaimError(null), 6000);
     } finally {
       setClaimingUsdc(false);
     }
@@ -176,7 +190,8 @@ export function ConnectWallet() {
   };
 
   /* ── Connected — dropdown menu ── */
-  if (status === "connected" && address) {
+  if (isConnected && effectiveAddress) {
+    const address = effectiveAddress;
     return (
       <div ref={walletMenuRef} style={{ position: "relative" }}>
         <button
@@ -323,12 +338,27 @@ export function ConnectWallet() {
                 {usdcClaimed ? "100 USDC sent!" : claimingUsdc ? "Claiming…" : "Get 100 test USDC"}
               </button>
 
+              {claimError && (
+                <div style={{
+                  margin: "2px 10px 6px", padding: "6px 8px", borderRadius: 6,
+                  background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)",
+                  color: "rgba(254,202,202,0.9)", fontSize: 11, lineHeight: 1.35,
+                  wordBreak: "break-word",
+                }}>
+                  {claimError}
+                </div>
+              )}
+
               {/* Divider */}
               <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "4px 10px" }} />
 
               {/* Disconnect */}
               <button
-                onClick={() => { disconnect(); setWalletMenu(false); }}
+                onClick={() => {
+                  if (szWallet.connected) szWallet.disconnect();
+                  if (status === "connected") disconnect();
+                  setWalletMenu(false);
+                }}
                 style={{
                   width: "100%", display: "flex", alignItems: "center", gap: 8,
                   padding: "9px 10px", borderRadius: 8, background: "none", border: "none",
@@ -394,6 +424,68 @@ export function ConnectWallet() {
 
         {/* Wallet options */}
         <div className="px-4 py-4 space-y-2">
+
+          {/* ── Cartridge (StarkZap) — gasless + no extension ── */}
+          <button
+            onClick={async () => { await szWallet.connect(); setOpen(false); }}
+            disabled={szWallet.connecting || !!connecting}
+            className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-150 group"
+            style={{
+              background: "rgba(124,58,237,0.08)",
+              border: "1px solid rgba(124,58,237,0.28)",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = "rgba(124,58,237,0.16)";
+              e.currentTarget.style.border = "1px solid rgba(124,58,237,0.45)";
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = "rgba(124,58,237,0.08)";
+              e.currentTarget.style.border = "1px solid rgba(124,58,237,0.28)";
+            }}
+          >
+            {/* Cartridge icon */}
+            <div style={{
+              width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+              background: "linear-gradient(145deg,#7c3aed,#4f46e5)",
+              boxShadow: "0 4px 16px rgba(124,58,237,0.4)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="3"/>
+                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                <line x1="12" y1="12" x2="12" y2="16"/>
+                <line x1="10" y1="14" x2="14" y2="14"/>
+              </svg>
+            </div>
+            <div className="flex-1 text-left">
+              <div className="flex items-center gap-2">
+                <p className="text-white font-semibold text-[15px]">Cartridge</p>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
+                  padding: "2px 6px", borderRadius: 99,
+                  background: "rgba(52,211,153,0.15)", color: "#34d399",
+                  border: "1px solid rgba(52,211,153,0.3)",
+                }}>⚡ GASLESS</span>
+              </div>
+              <p className="text-zinc-500 text-xs mt-0.5">Passkey or email — no extension, no gas fees</p>
+            </div>
+            {szWallet.connecting ? (
+              <div className="w-5 h-5 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                className="text-zinc-600 group-hover:text-violet-400 transition-colors">
+                <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            )}
+          </button>
+
+          {/* divider */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 4px" }}>
+            <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
+            <span style={{ fontSize: 11, color: "rgba(161,161,170,0.4)", letterSpacing: "0.04em" }}>OR USE BROWSER WALLET</span>
+            <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
+          </div>
+
           {connectors.map((connector) => {
             const isLoading = connecting === connector.id;
             const icon = typeof connector.icon === "string" ? connector.icon
@@ -402,7 +494,7 @@ export function ConnectWallet() {
               <button
                 key={connector.id}
                 onClick={() => handleConnect(connector)}
-                disabled={!!connecting}
+                disabled={!!connecting || szWallet.connecting}
                 className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-150 group"
                 style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
                 onMouseEnter={e => {

@@ -7,7 +7,6 @@ import {
   argent,
   braavos,
 } from "@starknet-react/core";
-import { WebWalletConnector } from "@starkpay/sdk";
 import { STARKNET_RPC } from "@/lib/constants";
 
 export function StarknetProvider({ children }: { children: React.ReactNode }) {
@@ -15,11 +14,7 @@ export function StarknetProvider({ children }: { children: React.ReactNode }) {
     <StarknetConfig
       chains={[sepolia]}
       provider={jsonRpcProvider({ rpc: () => ({ nodeUrl: STARKNET_RPC }) })}
-      connectors={[
-        argent(),
-        braavos(),
-        new WebWalletConnector({ url: "https://web.argent.xyz" }),
-      ]}
+      connectors={[argent(), braavos()]}
     >
       {children}
     </StarknetConfig>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { StarknetProvider } from "./starknet-provider";
+import { StarkZapWalletProvider } from "@/hooks/useStarkZapWallet";
 import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
@@ -18,7 +19,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <StarknetProvider>
-          <AppShell>{children}</AppShell>
+          <StarkZapWalletProvider>
+            <AppShell>{children}</AppShell>
+          </StarkZapWalletProvider>
         </StarknetProvider>
       </body>
     </html>

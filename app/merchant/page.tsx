@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useProvider } from "@starknet-react/core";
 import { useAccount, useDisconnect } from "@starknet-react/core";
+import { useStarkZapWallet } from "@/hooks/useStarkZapWallet";
 import { shortString } from "starknet";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { KpiSkeleton, TableRowSkeleton } from "@/components/Skeleton";
@@ -308,6 +309,7 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [exporting, setExporting] = useState<"pdf" | "xlsx" | null>(null);
   const [groupBy, setGroupBy] = useState<GroupBy>("month");
+  const szWallet = useStarkZapWallet();
 
   const { totalRevenueDisplay, withdrawableDisplay, activeSubs, txCount, withdrawable, totalRevenue, isLoading: statsLoading, refetch } = useMerchantStats();
   const { plans, isLoading: plansLoading } = usePlans();
@@ -342,12 +344,20 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
   }
 
   async function handleWithdraw() {
-    if (!account) return;
+    if (!account && !szWallet.connected) return;
     setWithdrawing(true);
     try {
-      const result = await account.execute([{ contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }]);
-      setTxHash(result.transaction_hash);
-      setToast({ message: "Withdrawal submitted — funds on the way!", type: "success" });
+      const call = { contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] };
+      let transaction_hash: string;
+      if (szWallet.connected) {
+        const result = await szWallet.execute([call]);
+        transaction_hash = result.transaction_hash;
+      } else {
+        const result = await account.execute([call]);
+        transaction_hash = result.transaction_hash;
+      }
+      setTxHash(transaction_hash);
+      setToast({ message: `Withdrawal submitted${szWallet.connected ? " ⚡ gasless" : ""} — funds on the way!`, type: "success" });
       setTimeout(() => refetch(), 3000);
     } catch (err) {
       console.error("Withdraw failed:", err);
@@ -409,13 +419,13 @@ function SectionRevenue({ account, address }: { account: any; address?: string }
               ✓ Withdrawn · View tx ↗
             </a>
           ) : (
-            <button onClick={handleWithdraw} disabled={withdrawing || !account || withdrawable === 0n}
+            <button onClick={handleWithdraw} disabled={withdrawing || (!account && !szWallet.connected) || withdrawable === 0n}
               style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 10,
                 background: "#7c3aed", color: "#fff", fontWeight: 600, fontSize: 13,
                 border: "none", cursor: "pointer",
                 boxShadow: "0 4px 20px rgba(124,58,237,0.3)",
-                opacity: (withdrawing || !account || withdrawable === 0n) ? 0.5 : 1,
+                opacity: (withdrawing || (!account && !szWallet.connected) || withdrawable === 0n) ? 0.5 : 1,
                 transition: "background 0.15s",
               }}
               onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; }}
@@ -632,20 +642,31 @@ function SectionPlans({ account, address }: { account: any; address?: string }) 
   const myPlans = address ? plans.filter(p => addrEq(p.merchant, address)) : plans;
 
   const { planCount, planLimit, canCreatePlan, tier } = useMerchantTier(address);
+  const szWallet = useStarkZapWallet();
 
   async function handleCreatePlan() {
-    if (!account || !name.trim() || !price) return;
+    if ((!account && !szWallet.connected) || !name.trim() || !price) return;
     setCreating(true);
     try {
-      const newPlanId = planCount + 1; // sequential — will be assigned this ID
+      const newPlanId = planCount + 1;
       const nameFelt = shortString.encodeShortString(name.trim());
       const priceUsdc = BigInt(Math.round(Number(price) * 1_000_000));
-      const { transaction_hash, gasless } = await executeGasless(account, [{
+      const call = {
         contractAddress: STARKPAY_ADDRESS,
         entrypoint: "create_plan",
         calldata: [nameFelt, priceUsdc.toString(), "0", intervalSec.toString()],
-      }]);
-      // Wait for confirmation then save features
+      };
+
+      let transaction_hash: string;
+      if (szWallet.connected) {
+        // StarkZap Cartridge — gasless via AVNU ⚡
+        const result = await szWallet.execute([call]);
+        transaction_hash = result.transaction_hash;
+      } else {
+        const result = await executeGasless(account, [call]);
+        transaction_hash = result.transaction_hash;
+      }
+
       await provider.waitForTransaction(transaction_hash);
       const featureLines = features.split("\n").map((l: string) => l.trim()).filter(Boolean);
       savePlanFeatures(newPlanId, features);
@@ -844,15 +865,20 @@ function SectionPlans({ account, address }: { account: any; address?: string }) 
             Network: Starknet Sepolia · Tier: {TIER_LABEL[tier]} ({planCount}/{planLimit === 18446744073709551615 ? "∞" : planLimit} plans)
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={handleCreatePlan} disabled={creating || !account || !name.trim() || !price}
-              style={{
-                padding: "9px 18px", borderRadius: 10, background: "#7c3aed", color: "#fff",
-                fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer",
-                opacity: (creating || !account || !name.trim() || !price) ? 0.5 : 1,
-              }}
-            >
-              {creating ? "Creating…" : "Create on-chain"}
-            </button>
+            {(() => {
+              const disabled = creating || (!account && !szWallet.connected) || !name.trim() || !price;
+              return (
+                <button onClick={handleCreatePlan} disabled={disabled}
+                  style={{
+                    padding: "9px 18px", borderRadius: 10, background: "#7c3aed", color: "#fff",
+                    fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer",
+                    opacity: disabled ? 0.5 : 1,
+                  }}
+                >
+                  {creating ? "Creating…" : "Create on-chain"}
+                </button>
+              );
+            })()}
             <button onClick={() => setShowForm(false)} style={{
               padding: "9px 18px", borderRadius: 10, background: "transparent",
               border: "0.5px solid rgba(255,255,255,0.12)", color: "rgba(161,161,170,0.55)", fontSize: 13, cursor: "pointer",
@@ -1003,6 +1029,7 @@ function SectionWithdrawals({ account, address }: { account: any; address?: stri
   const [withdrawing, setWithdrawing] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const szWallet = useStarkZapWallet();
 
   const { withdrawable, withdrawableDisplay, totalRevenue, totalRevenueDisplay, isLoading: statsLoading, refetch } = useMerchantStats();
   const { events: wdEvents, isLoading: eventsLoading } = useWithdrawalEvents(address);
@@ -1010,12 +1037,20 @@ function SectionWithdrawals({ account, address }: { account: any; address?: stri
   const totalWithdrawn = totalRevenue - withdrawable;
 
   async function handleWithdraw() {
-    if (!account) return;
+    if (!account && !szWallet.connected) return;
     setWithdrawing(true);
     try {
-      const result = await account.execute([{ contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] }]);
-      setTxHash(result.transaction_hash);
-      setToast({ message: "Withdrawal submitted — funds on the way!", type: "success" });
+      const call = { contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw", calldata: [] };
+      let transaction_hash: string;
+      if (szWallet.connected) {
+        const result = await szWallet.execute([call]);
+        transaction_hash = result.transaction_hash;
+      } else {
+        const result = await account.execute([call]);
+        transaction_hash = result.transaction_hash;
+      }
+      setTxHash(transaction_hash);
+      setToast({ message: `Withdrawal submitted${szWallet.connected ? " ⚡ gasless" : ""} — funds on the way!`, type: "success" });
       setTimeout(() => refetch(), 3000);
     } catch (err) {
       console.error("Withdraw failed:", err);
@@ -1065,13 +1100,13 @@ function SectionWithdrawals({ account, address }: { account: any; address?: stri
             ✓ Withdrawn · View tx ↗
           </a>
         ) : (
-          <button onClick={handleWithdraw} disabled={withdrawing || !account || withdrawable === 0n}
+          <button onClick={handleWithdraw} disabled={withdrawing || (!account && !szWallet.connected) || withdrawable === 0n}
             style={{
               display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12,
               background: "#7c3aed", color: "#fff", fontWeight: 600, fontSize: 13.5,
               border: "none", cursor: "pointer", flexShrink: 0,
               boxShadow: "0 4px 20px rgba(124,58,237,0.3)",
-              opacity: (withdrawing || !account || withdrawable === 0n) ? 0.5 : 1,
+              opacity: (withdrawing || (!account && !szWallet.connected) || withdrawable === 0n) ? 0.5 : 1,
               transition: "background 0.15s",
             }}
             onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; }}
@@ -1132,6 +1167,7 @@ function ProtocolFeeCard({ account, address }: { account: any; address?: string 
   const [withdrawing, setWithdrawing] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const szWallet = useStarkZapWallet();
 
   const { data: feeBalance, refetch: refetchBalance } = useReadContract({
     address: STARKPAY_ADDRESS as `0x${string}`,
@@ -1158,10 +1194,13 @@ function ProtocolFeeCard({ account, address }: { account: any; address?: string 
   const feePercent = (bps / 100).toFixed(2);
 
   async function handleWithdrawFee() {
-    if (!account) return;
+    if (!account && !szWallet.connected) return;
     setWithdrawing(true);
     try {
-      const result = await account.execute([{ contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw_protocol_fee", calldata: [] }]);
+      const call = { contractAddress: STARKPAY_ADDRESS, entrypoint: "withdraw_protocol_fee", calldata: [] };
+      const result = szWallet.connected
+        ? await szWallet.execute([call])
+        : await account.execute([call]);
       setTxHash(result.transaction_hash);
       setToast({ message: "Protocol fee withdrawn!", type: "success" });
       setTimeout(() => refetchBalance(), 3000);
@@ -1206,12 +1245,12 @@ function ProtocolFeeCard({ account, address }: { account: any; address?: string 
               ✓ Withdrawn · View tx ↗
             </a>
           ) : (
-            <button onClick={handleWithdrawFee} disabled={withdrawing || !account || balance === 0n}
+            <button onClick={handleWithdrawFee} disabled={withdrawing || (!account && !szWallet.connected) || balance === 0n}
               style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12,
                 background: "rgba(251,191,36,0.15)", color: "#fbbf24", fontWeight: 600, fontSize: 13,
                 border: "1px solid rgba(251,191,36,0.3)", cursor: "pointer", flexShrink: 0,
-                opacity: (withdrawing || !account || balance === 0n) ? 0.5 : 1,
+                opacity: (withdrawing || (!account && !szWallet.connected) || balance === 0n) ? 0.5 : 1,
                 transition: "all 0.15s",
               }}
               onMouseEnter={e => { e.currentTarget.style.background = "rgba(251,191,36,0.25)"; }}
@@ -1418,11 +1457,13 @@ const SECTION_LABEL: Record<Section, string> = {
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function MerchantPage() {
-  const { account, address, status } = useAccount();
+  const { account, address: snAddr, status } = useAccount();
+  const { address: szAddr, connected: szConnected } = useStarkZapWallet();
+  const address = snAddr ?? szAddr ?? undefined;
   const [section, setSection] = useState<Section>("revenue");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isAuth = status === "connected";
+  const isAuth = status === "connected" || szConnected;
   const displayId = address;
 
   if (status === "reconnecting") return <MerchantSkeleton />;

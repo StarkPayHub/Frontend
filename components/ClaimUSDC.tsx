@@ -5,6 +5,7 @@ import { useAccount, useProvider } from "@starknet-react/core";
 import { hash } from "starknet";
 import { Toast } from "@/components/Toast";
 import { MOCK_USDC_ADDRESS } from "@/lib/contracts";
+import { useStarkZapWallet } from "@/hooks/useStarkZapWallet";
 
 export function ClaimUSDC() {
   const [loading, setLoading] = useState(false);
@@ -12,7 +13,9 @@ export function ClaimUSDC() {
   const [alreadyClaimed, setAlreadyClaimed] = useState(false);
   const [checking, setChecking] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
-  const { address, account } = useAccount();
+  const { address: snAddr, account } = useAccount();
+  const szWallet = useStarkZapWallet();
+  const address = snAddr ?? szWallet.address ?? undefined;
   const { provider } = useProvider();
 
   // Check on-chain whether this wallet has already claimed
@@ -35,7 +38,7 @@ export function ClaimUSDC() {
   }, [address]);
 
   async function handleClaim() {
-    if (!address || !account) return;
+    if (!address || (!account && !szWallet.connected)) return;
 
     if (alreadyClaimed) {
       setToast({ message: "You've already claimed your 100 USDC for this wallet.", type: "error" });
@@ -45,14 +48,14 @@ export function ClaimUSDC() {
     setLoading(true);
     setToast({ message: "Claiming 100 USDC — please confirm in your wallet...", type: "info" });
     try {
-      // claim_faucet() — no args, mints exactly 100 USDC, blocked after first claim
-      const result = await account.execute([
-        {
-          contractAddress: MOCK_USDC_ADDRESS,
-          entrypoint: "claim_faucet",
-          calldata: [],
-        },
-      ]);
+      const call = {
+        contractAddress: MOCK_USDC_ADDRESS,
+        entrypoint: "claim_faucet",
+        calldata: [],
+      };
+      const result = szWallet.connected
+        ? await szWallet.execute([call])
+        : await account!.execute([call]);
 
       await provider.waitForTransaction(result.transaction_hash);
 

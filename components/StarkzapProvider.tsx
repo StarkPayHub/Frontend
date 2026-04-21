@@ -54,16 +54,11 @@ function StarkzapInner({ children }: { children: ReactNode }) {
     user?.email?.address ??
     null;
 
-  // When starkzap is published:
-  //   pnpm add starkzap → uncomment below
-  //
-  // if (sdkRef.current === null) {
-  //   const { StarkZap } = require("starkzap");
-  //   sdkRef.current = new StarkZap({
-  //     network: "sepolia",
-  //     paymaster: { apiKey: process.env.NEXT_PUBLIC_AVNU_PAYMASTER_API_KEY ?? "" },
-  //   });
-  // }
+  // Initialise StarkZap SDK once on client
+  if (sdkRef.current === null) {
+    const { StarkZap } = require("starkzap");
+    sdkRef.current = new StarkZap({ network: "sepolia" });
+  }
 
   return (
     <StarkzapContext.Provider value={{

@@ -1,5 +1,12 @@
-import { RpcProvider, Account, Contract, CallData, hash } from 'starknet'
+/**
+ * Keeper bot — powered by StarkZap SDK.
+ *
+ * Auto-renewals are gasless via AVNU paymaster (feeMode: "sponsored").
+ * The keeper wallet never needs to hold STRK/ETH for gas.
+ */
+import { RpcProvider, Contract, CallData, hash } from 'starknet'
 import { STARKPAY_ADDRESS } from './contracts'
+import { createKeeperWallet, executeGaslessStarkZap } from './starkzap-sdk'
 
 // ─── Config (from env) ──────────────────────────────────────────────────────
 const RPC_URL = process.env.STARKNET_RPC
@@ -39,13 +46,15 @@ export async function runKeeper(): Promise<KeeperResult> {
     throw new Error('KEEPER_PRIVATE_KEY and KEEPER_ADDRESS env vars required')
   }
 
+  // StarkZap wallet — gasless renewal via AVNU paymaster (keeper pays no gas)
+  const keeperWallet = await createKeeperWallet(keeperKey)
+
   const provider = new RpcProvider({ nodeUrl: RPC_URL })
-  const keeperAccount = new Account(provider, keeperAddr, keeperKey)
   const contract = new Contract(KEEPER_ABI, STARKPAY_ADDRESS, provider)
 
-  log(`🔄 Keeper running at ${new Date().toISOString()}`)
+  log(`🔄 Keeper running at ${new Date().toISOString()} [powered by StarkZap ⚡]`)
   log(`   StarkPay: ${STARKPAY_ADDRESS}`)
-  log(`   Keeper:   ${keeperAddr.slice(0, 12)}...`)
+  log(`   Keeper:   ${keeperAddr.slice(0, 12)}... (gasless via AVNU)`)
 
   // 1. Fetch all SubscriptionCreated events to discover subscriptions
   log('📡 Fetching SubscriptionCreated events...')
@@ -93,13 +102,13 @@ export async function runKeeper(): Promise<KeeperResult> {
 
       if (periodEnd < now) {
         try {
-          const result = await keeperAccount.execute([{
+          // StarkZap gasless — AVNU pays gas, keeper wallet needs no STRK
+          const result = await executeGaslessStarkZap(keeperWallet, [{
             contractAddress: STARKPAY_ADDRESS,
             entrypoint: 'execute_renewal',
             calldata: CallData.compile({ user, plan_id: planId }),
           }])
-          await provider.waitForTransaction(result.transaction_hash)
-          log(`   ✅ Renewed user=${user.slice(0, 10)}... plan=${planId} tx=${result.transaction_hash.slice(0, 14)}...`)
+          log(`   ✅ Renewed user=${user.slice(0, 10)}... plan=${planId} tx=${result.transaction_hash.slice(0, 14)}... ⚡ gasless`)
           renewed++
         } catch (err: any) {
           log(`   ❌ Failed user=${user.slice(0, 10)}... plan=${planId}: ${err?.message ?? err}`)

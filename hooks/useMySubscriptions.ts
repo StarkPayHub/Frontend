@@ -4,6 +4,7 @@ import { useAccount } from "@starknet-react/core";
 import { RpcProvider, Contract } from "starknet";
 import { STARKPAY_ADDRESS, starkpayAbi } from "@/lib/contracts";
 import { STARKNET_RPC, PLANS } from "@/lib/constants";
+import { useStarkZapWallet } from "@/hooks/useStarkZapWallet";
 
 export interface MySubscription {
   planId: number;
@@ -24,7 +25,9 @@ function parseBool(val: any): boolean {
 }
 
 export function useMySubscriptions() {
-  const { address } = useAccount();
+  const { address: snAddr } = useAccount();
+  const { address: szAddr } = useStarkZapWallet();
+  const address = snAddr ?? szAddr ?? undefined;
   const [subscriptions, setSubscriptions] = useState<MySubscription[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
