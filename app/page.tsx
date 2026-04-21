@@ -6,6 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { MatrixBackground } from "@/components/MatrixBackground";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { useAccount } from "@starknet-react/core";
+import { useStarkZapWallet } from "@/hooks/useStarkZapWallet";
 
 /* ─────────────────────────────────────────────
    Single IntersectionObserver for all sections
@@ -115,7 +116,8 @@ function FlowDivider() {
 export default function Home() {
   useScrollReveal();
   const { status } = useAccount();
-  const isAuth = status === "connected";
+  const szWallet = useStarkZapWallet();
+  const isConnected = status === "connected" || szWallet.connected;
 
   return (
     <>
@@ -156,20 +158,24 @@ export default function Home() {
             </p>
 
             <div className="flex flex-col items-center gap-3 mt-2">
-              {isAuth ? (
-                /* ── Authenticated: show Start Building ── */
-                <Link href="/dashboard" className="cta-pill"
+              {isConnected ? (
+                /* ── Connected: invite to subscribe ── */
+                <Link href="/pricing" className="cta-pill"
                   style={{
                     display: "inline-flex", alignItems: "center", gap: 10,
                     padding: "14px 36px", borderRadius: 999,
                     background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
                     color: "#fff",
                     fontSize: "0.95rem", fontWeight: 600, textDecoration: "none",
+                    boxShadow: "0 0 28px rgba(124,58,237,0.45)",
                   }}>
-                  Start Building →
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                  Subscribe & Unlock Features →
                 </Link>
               ) : (
-                /* ── Not authenticated: connect wallet ── */
+                /* ── Not connected: connect wallet ── */
                 <ConnectWallet />
               )}
 
@@ -180,7 +186,7 @@ export default function Home() {
                   fontSize: "0.88rem", fontWeight: 500,
                   textDecoration: "underline", textDecorationColor: "rgba(139,92,246,0.35)",
                   textUnderlineOffset: 4, transition: "color 0.2s",
-                  marginTop: isAuth ? 0 : 4,
+                  marginTop: isConnected ? 0 : 4,
                 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#c4b5fd"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(167,139,250,0.7)"; }}
